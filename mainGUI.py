@@ -9,13 +9,9 @@ Dev Notes:
 import sys, os.path
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
 from PyQt5.QtCore import Qt, QTimer
-from pyqtgraph import PlotWidget, plot
 from create_baselines import *
-import pyqtgraph as pg
 import datetime
-import csv
 import pickle
-import pdb
 
 
 class MainWindow(QMainWindow):
@@ -40,7 +36,7 @@ class MainWindow(QMainWindow):
             self.configData = dict()
             self.configData['historyFileList'] = self.historyFileList
             with open(self.configFile, 'wb') as outFile:
-                pickle.dump(self.configData, outFile, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(self.configData, outFile, protocol=pickle.DEFAULT_PROTOCOL)
 
         #Main Layout creation
         self.CentralWindow = QWidget()
@@ -118,7 +114,7 @@ class MainWindow(QMainWindow):
     def calibrateMethod(self):
         #Popup message box to inform of processself.msgBox = QMessageBox()
         self.statusBar().showMessage('Calibrating....')
-        
+
         #Perform a calibration, which updates the baseline values.
         self.UHFBaseline = makeUhfBaseline()
         self.VHFBaseline = makeVhfBaseline()
@@ -127,7 +123,7 @@ class MainWindow(QMainWindow):
         self.configData['UHFBaseline'] = self.UHFBaseline
         self.configData['VHFBaseline'] = self.VHFBaseline
         with open(self.configFile, 'wb') as outFile:
-            pickle.dump(self.configData, outFile, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.configData, outFile, protocol=pickle.DEFAULT_PROTOCOL)
 
         #Popup a message that the cal was successful.
         print("succesfully performed Calibration")
