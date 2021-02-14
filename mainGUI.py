@@ -42,8 +42,8 @@ class MainWindow(QMainWindow):
         self.CentralWindow = QWidget()
         MainLayout = QVBoxLayout()
 
-        self.setFixedWidth(600)
-        self.setFixedHeight(300)
+        #self.setFixedWidth(600)
+        #self.setFixedHeight(300)
 
         #Add the main buttons. Lots of detail later.
         ButtonHeight = 50
