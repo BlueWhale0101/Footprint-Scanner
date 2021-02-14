@@ -37,6 +37,8 @@ class MainWindow(QMainWindow):
             self.historyFileList = []
             self.configData = dict()
             self.configData['historyFileList'] = self.historyFileList
+            with open(self.configFile, 'wb') as outFile:
+                pickle.dump(self.configData, outFile, protocol=pickle.HIGHEST_PROTOCOL)
 
         #Main Layout creation
         self.CentralWindow = QWidget()
