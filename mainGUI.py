@@ -42,8 +42,11 @@ class MainWindow(QMainWindow):
         self.CentralWindow = QWidget()
         MainLayout = QVBoxLayout()
 
+        self.setFixedWidth(600)
+        self.setFixedHeight(300)
+
         #Add the main buttons. Lots of detail later.
-        ButtonHeight = 140
+        ButtonHeight = 50
         ButtonStyleSheet = "QPushButton{ border-radius:8px;\
                             border: 1px solid;\
                             background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, \
