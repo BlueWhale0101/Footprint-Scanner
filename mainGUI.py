@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         #self.setFixedHeight(300)
 
         #Add the main buttons. Lots of detail later.
-        ButtonHeight = 50
+        ButtonHeight = 75
         ButtonStyleSheet = "QPushButton{ border-radius:8px;\
                             border: 1px solid;\
                             background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, \
