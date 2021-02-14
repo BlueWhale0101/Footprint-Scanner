@@ -41,9 +41,22 @@ def makeUhfBaseline():
 	exitTimer = "1M"
 	command = makeCommand(fileName=fileName, hzLow=hzLow, hzHigh=hzHigh, binSize=binSize, exitTimer=exitTimer)
 	os.system(command)
+	text = np.genfromtxt(fileName, delimiter=",", dtype=None)
 	csv = np.genfromtxt(fileName, delimiter=",")
 	csv = np.array(csv)
 	bucketReadings = csv[:,6:-1]
+
+	identifier = text[0][1]
+	numRows = 0
+	for i in range(len(text)):
+		if text[i][1] == identifier:
+			numRows+=1
+		else:
+			break
+	print(numRows)
+	numBins = numRows * len(bucketReadings[0]) 
+	print(numBins)
+
 	baselineData = np.reshape(bucketReadings, (-1,numBins))
 	medianData = np.median(baselineData, axis = 0)
 
@@ -55,13 +68,25 @@ def makeVhfBaseline():
 	hzLow = "30M"
 	hzHigh = "300M"
 	binSize = "200K"
-	numBins = makeNumBins(hzLow, hzHigh, binSize)
 	exitTimer = "1M"
 	command = makeCommand(fileName=fileName, hzLow=hzLow, hzHigh=hzHigh, binSize=binSize, exitTimer=exitTimer)
 	os.system(command)
+	text = np.genfromtxt(fileName, delimiter=",", dtype=None)
 	csv = np.genfromtxt(fileName, delimiter=",")
 	csv = np.array(csv)
 	bucketReadings = csv[:,6:-1]
+
+	identifier = text[0][1]
+	numRows = 0
+	for i in range(len(text)):
+		if text[i][1] == identifier:
+			numRows+=1
+		else:
+			break
+	print(numRows)
+	numBins = numRows * len(bucketReadings[0]) 
+	print(numBins)
+
 	baselineData = np.reshape(bucketReadings, (-1,numBins))
 	medianData = np.median(baselineData, axis = 0)
 
