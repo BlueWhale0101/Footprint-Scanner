@@ -1,19 +1,10 @@
-from pylab import *
-from rtlsdr import *
+#Run the rtl_power script, and get the output from the script in a stream.
 
-sdr = RtlSdr()
+import os
 
-# configure device
-sdr.sample_rate = 2.4e6
-sdr.center_freq = 95e6
-sdr.gain = 4
+stream = os.popen("rtl_power -f 30M:40M:10k -g 50 -i 1 -e 1s")
 
-samples = sdr.read_samples(256*1024)
-sdr.close()
 
-# use matplotlib to estimate and plot the PSD
-psd(samples, NFFT=1024, Fs=sdr.sample_rate/1e6, Fc=sdr.center_freq/1e6)
-xlabel('Frequency (MHz)')
-ylabel('Relative power (dB)')
-
-show()
+print('outputting stream')
+output = stream.read()
+output
