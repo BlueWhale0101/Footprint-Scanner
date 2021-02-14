@@ -5,6 +5,12 @@ from datetime import datetime, timedelta, date
 import numpy as np
 
 #rtl_power -f 674.230M:674.233M:1 -g 50 -i 1 -e 1h radar.csv
+'''
+Usage example:
+python3 create_baselines.py will print out the create_baselines
+UHFBaseline = create_baselines.makeUhfBaseline() will return the vector representing UHF power baseline
+VHFBaseline = create_baselines.makeVhfBaseline() will return the vector representing VHF power baseline
+'''
 
 def makeCommand(fileName="", hzLow = "89M", hzHigh = "90M", binSize = "5k", gain = "50", interval = "10", exitTimer = "1M"):
 	answer = "rtl_power -f "
@@ -26,7 +32,7 @@ def makeNumBins(hzLow, hzHigh, binSize):
 		binSize = float(binSizeStr[:-1])/1000
 	else:
 		binSize = float(binSize[:-1])
-	numBins = (hzHigh - hzLow)/binSize 
+	numBins = (hzHigh - hzLow)/binSize
 	if numBins % 1 > 0:
 		numBins = int(numBins) + 1
 	numBins = int(numBins)
@@ -54,7 +60,7 @@ def makeUhfBaseline():
 		else:
 			break
 	print(numRows)
-	numBins = numRows * len(bucketReadings[0]) 
+	numBins = numRows * len(bucketReadings[0])
 	print(numBins)
 
 	baselineData = np.reshape(bucketReadings, (-1,numBins))
@@ -84,7 +90,7 @@ def makeVhfBaseline():
 		else:
 			break
 	print(numRows)
-	numBins = numRows * len(bucketReadings[0]) 
+	numBins = numRows * len(bucketReadings[0])
 	print(numBins)
 
 	baselineData = np.reshape(bucketReadings, (-1,numBins))
@@ -92,17 +98,11 @@ def makeVhfBaseline():
 
 	return medianData
 
-UHFbaseline = makeUhfBaseline()
-print(UHFbaseline)
+if __name__ == '__main__':
+	UHFbaseline = makeUhfBaseline()
+	print('UHF Baseline Power Readings:')
+	print(UHFbaseline)
 
-VHFbaseline = makeVhfBaseline()
-print(VHFbaseline)
-
-# count = 0
-# while count < 1:
-# 	curTime = datetime.now().strftime("%m%d%H%M")
-# 	fileName = curTime+".csv"
-# 	command = makeCommand(fileName)
-# 	os.system(command)
-# 	count += 1
-
+	print('VHF Baseline Power Readings:')
+	VHFbaseline = makeVhfBaseline()
+	print(VHFbaseline)

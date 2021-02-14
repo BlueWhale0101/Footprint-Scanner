@@ -1,5 +1,9 @@
 # Footprint-Scanner
 
+Baseline calibration calculation function is written
+Main GUI is written, but doesn't call any RF Functions.
+
+
 Build RTL-SDR on your Mac: https://gist.github.com/jheasly/9477732
 
 Usage for rtl-power, included in rtl-sdr:

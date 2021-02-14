@@ -10,6 +10,7 @@ import sys, os.path
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
 from PyQt5.QtCore import Qt, QTimer
 from pyqtgraph import PlotWidget, plot
+from create_baselines import *
 import pyqtgraph as pg
 import datetime
 import csv
@@ -25,6 +26,7 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         #Key attribute creation
+        self.statusBar()
 
         #Load config file
         self.configFile = 'config.scn'
@@ -114,10 +116,27 @@ class MainWindow(QMainWindow):
         pass
 
     def calibrateMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
+        #Popup message box to inform of processself.msgBox = QMessageBox()
+        self.statusBar().showMessage('Calibrating....')
+        
+        #Perform a calibration, which updates the baseline values.
+        self.UHFBaseline = makeUhfBaseline()
+        self.VHFBaseline = makeVhfBaseline()
 
-        #Keep scanning until the view is closed.
-        pass
+        #Set the values in the config file.
+        self.configData['UHFBaseline'] = self.UHFBaseline
+        self.configData['VHFBaseline'] = self.VHFBaseline
+        with open(self.configFile, 'wb') as outFile:
+            pickle.dump(self.configData, outFile, protocol=pickle.HIGHEST_PROTOCOL)
+
+        #Popup a message that the cal was successful.
+        print("succesfully performed Calibration")
+        self.msgBox = QMessageBox()
+        self.msgBox.setWindowTitle('Sucess!')
+        self.msgBox.setIcon(QMessageBox.Information)
+        self.msgBox.setText("Successfully Calibrated System")
+        self.msgBox.setStandardButtons(QMessageBox.Ok)
+        self.msgBox.exec()
 
     def browseHistoryMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
