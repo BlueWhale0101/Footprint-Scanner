@@ -100,28 +100,35 @@ class MainWindow(QMainWindow):
         #Open a new window with immediate tactical info (Relative power level)
         #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
         scanDict = {'title':'UHF Scan', 'minFreq':'225M', 'maxFreq':'400M', 'binSize':'25k', 'interval':'1', 'exitTimer':'10m'}
-        self.UHFScanWindow = ScanWindow(scanDict)
+        self.ScanWindow = ScanWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
-        self.UHFScanWindow.show()
+        self.ScanWindow.show()
 
     def VHFScanMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
         #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
         scanDict = {'title':'VHF Scan', 'minFreq':'30M', 'maxFreq':'50M', 'binSize':'25k', 'interval':'1', 'exitTimer':'10m'}
-        self.VHFScanWindow = ScanWindow(scanDict)
+        self.ScanWindow = ScanWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
-        self.VHFScanWindow.show()
+        self.ScanWindow.show()
 
 
     def FullScanMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
         #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        scanDict = {'title':'UHF Scan', 'minFreq':'30M', 'maxFreq':'1700M', 'binSize':'1M', 'interval':'30', 'exitTimer':'20m'}
-        self.UHFScanWindow = ScanWindow(scanDict)
+        scanDict = {'title':'Full Scan', 'minFreq':'30M', 'maxFreq':'1700M', 'binSize':'1M', 'interval':'30', 'exitTimer':'20m'}
+        self.ScanWindow = ScanWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
-        self.UHFScanWindow.show()
+        self.ScanWindow.show()
 
     def calibrateMethod(self):
+        '''
+        The calibration method scans the environment across the entire UHF and VHF
+        frequency ranges. It returns the median power received across the frequency bands
+        for each band, in dB. The difference between this value and the filtered value
+        will later be used to determine whether anything unexpected is happening
+        in the spectrum.
+        '''
         #Popup message box to inform of processself.msgBox = QMessageBox()
         self.statusBar().showMessage('Calibrating....')
 

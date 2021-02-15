@@ -5,9 +5,9 @@ from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
 import pyqtgraph as pg
 import numpy as np
+import io
 import datetime
 import pickle
-from random import randint
 
 
 class ScanWindow(QMainWindow):
@@ -19,10 +19,23 @@ class ScanWindow(QMainWindow):
 
     def initUI(self, configDict):
         #Key attribute creation
+        self.configFile = 'config.scn'
+        with open(self.configFile, 'rb') as inFile:
+            self.configData = pickle.load(inFile)
         #The passed in configDict must have the keys title, minFreq, maxFreq, binSize, interval, exitTimer
         self.configDict = configDict
         self.statusBar()
         self.currentScanTime = 0
+        if self.configDict['title'] == 'UHF Scan':
+            self.scanTypeBaseline = 'UHFBaseline'
+        elif self.configDict['title'] == 'VHF Scan':
+            self.scanTypeBaseline = 'VHFBaseline'
+        elif self.configDict['title'] == 'Full Scan':
+            self.scanTypeBaseline = 'UHFBaseline' #For full scans, use the UHF baseline since it's more relevant.
+        else:
+            #Something is wrong, no baseline is passed in.
+            from warnings import warn
+            warn('something went wrong. No baseline is set, ScanView is going to crash')
         #Main Layout creation
         self.CentralWindow = QWidget()
         MainLayout = QVBoxLayout()
@@ -30,20 +43,21 @@ class ScanWindow(QMainWindow):
         #Start the first scan so there is data in the pipe
         self.initScanMethod()
         #Show the scan Data
-        self.sampleNum = []
+        self.powerGraph = pg.PlotWidget()
+        self.powerGraph.setBackground((59, 79, 65))
+        self.powerGraph.showGrid(x=True, y=True)
         self.avgPower  = []
-        pen = pg.mkPen(color=(255, 255, 255))
-        self.data_line =  self.powerGraph.plot(self.sampleNum, self.avgPower, pen=pen)
+        pen = pg.mkPen(color=(242, 245, 66))
+        self.data_line =  self.powerGraph.plot(self.avgPower, pen=pen)
 
         #call the update event This drives both the scanning calls and the graph updating
         #Set up the update function
         self.updateTimer = QTimer()
         self.updateTimer.timeout.connect(self.updateMethod)
-        self.updateTimer.setInterval(1*1000) #interval is set in milliseconds. Run the update every second while debugging, update to a minute later
+        self.updateTimer.setInterval(500) #interval is set in milliseconds. Run the update every second while debugging, update to a minute later
         self.updateTimer.start()
 
         #Add the graph widget which shows the moving average of the power, in decibels, of the band.
-        self.powerGraph = pg.PlotWidget()
         MainLayout.addWidget(self.powerGraph)
 
         #Close Button setup
@@ -74,12 +88,28 @@ class ScanWindow(QMainWindow):
             #The scan ended. Start a new one.
             self.initScanMethod()
         #Now that we are sure a scan is going, update the data we are plotting
-        self.sampleNum.append()
-        self.avgPower.append()
-        self.powerGraph.update()
+        with io.FileIO(self.dataFileName) as inStream:
+            #Get all the data which has been written since the last time.
+             rawData = inStream.read()
+             #Get the numeric data
+             dataArray = np.genfromtxt(io.StringIO(rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
+             for reading in dataArray:
+                 dbPower = np.median(reading[6:-2])
 
+                 newPower = np.log10(np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline]))) #db have to be converted to a dec to be added and subtracted
+                 if len(self.avgPower) > 3:
+                     print('passing average')
+                     movingAvg = np.average([self.avgPower[-2], self.avgPower[-1], newPower]) #If there is enough data in the list,
+                     self.avgPower.append(movingAvg)
+                     self.data_line.setData(self.avgPower)
+                 else:
+                     self.avgPower.append(newPower)
+                     self.data_line.setData(self.avgPower)
 
-        print('Update the graph!')
+        #Don't let the plotter build up more then a thousand points. after 60 seconds, this just becomes a rolling plot
+        if len(self.avgPower) > 120:
+            self.avgPower = self.avgPower[-120:]
+        print('Updated the graph!')
 
     def closeEvent(self, event):
         #Make sure we are gracefully ending the scan and not just leaving the process running in the background.
@@ -89,3 +119,9 @@ class ScanWindow(QMainWindow):
         self.currentScanCommandCall.terminate()
         self.currentScanCommandCall.wait()
         event.accept()
+
+
+# from pdb import set_trace
+# from PyQt5.QtCore import pyqtRemoveInputHook
+# pyqtRemoveInputHook()
+# set_trace()

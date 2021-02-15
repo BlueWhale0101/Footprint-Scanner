@@ -40,7 +40,7 @@ def makeNumBins(hzLow, hzHigh, binSize):
 	return numBins
 
 def makeUhfBaseline():
-	fileName = "outputFiles/uhfBaselineInput.csv"
+	fileName = "Data/uhfBaselineInput.csv"
 	hzLow = "300M"
 	hzHigh = "1766M"
 	binSize = "1M"
@@ -72,7 +72,7 @@ def makeUhfBaseline():
 
 
 def makeVhfBaseline():
-	fileName = "outputFiles/vhfBaselineInput.csv"
+	fileName = "Data/vhfBaselineInput.csv"
 	hzLow = "30M"
 	hzHigh = "300M"
 	binSize = "200K"
