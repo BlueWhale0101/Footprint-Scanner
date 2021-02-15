@@ -114,10 +114,7 @@ class ScanWindow(QMainWindow):
         print("User has closed the window")
         self.updateTimer.stop()
         os.killpg(os.getpgid(self.currentScanCommandCall.pid), signal.SIGTERM)
-        print('Polling...')
-        print(self.currentScanCommandCall.poll())
         self.currentScanCommandCall.wait(10)
-        print('final poll: '+ str(status))
         event.accept()
 
 
