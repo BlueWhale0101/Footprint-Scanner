@@ -120,7 +120,7 @@ class ScanWindow(QMainWindow):
         print('Polling...')
         print(self.currentScanCommandCall.poll())
         status = self.currentScanCommandCall.poll()
-        while status is not None:
+        while status is not 0:
             sleep(.5)
             status = self.currentScanCommandCall.poll()
         print('final poll: '+ str(status))
