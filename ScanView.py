@@ -30,6 +30,10 @@ class ScanWindow(QMainWindow):
         #Start the first scan so there is data in the pipe
         self.initScanMethod()
         #Show the scan Data
+        self.sampleNum = []
+        self.avgPower  = []
+        pen = pg.mkPen(color=(255, 255, 255))
+        self.data_line =  self.powerGraph.plot(self.sampleNum, self.avgPower, pen=pen)
 
         #call the update event This drives both the scanning calls and the graph updating
         #Set up the update function
@@ -41,11 +45,6 @@ class ScanWindow(QMainWindow):
         #Add the graph widget which shows the moving average of the power, in decibels, of the band.
         self.powerGraph = pg.PlotWidget()
         MainLayout.addWidget(self.powerGraph)
-
-        self.x = list(range(100))
-        self.y  = [randint(0,100) for x in range(100)]
-        pen = pg.mkPen(color=(255, 255, 255))
-        #self.data_line =  self.powerGraph.plot(self.x, self.y, pen=pen)
 
         #Close Button setup
         self.Close_Button = QPushButton('End Scan')
@@ -75,6 +74,10 @@ class ScanWindow(QMainWindow):
             #The scan ended. Start a new one.
             self.initScanMethod()
         #Now that we are sure a scan is going, update the data we are plotting
+        self.sampleNum.append()
+        self.avgPower.append()
+        self.powerGraph.update()
+
 
         print('Update the graph!')
 

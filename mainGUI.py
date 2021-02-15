@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
             self.configData = dict()
             self.configData['historyFileList'] = self.historyFileList
             with open(self.configFile, 'wb') as outFile:
-                pickle.dump(self.configData, outFile, protocol=pickle.DEFAULT_PROTOCOL)
+                pickle.dump(self.configData, outFile, protocol=3) #Use protocol 3 because the PI is on python 3.7
 
         #Main Layout creation
         self.CentralWindow = QWidget()
@@ -133,7 +133,7 @@ class MainWindow(QMainWindow):
         self.configData['UHFBaseline'] = self.UHFBaseline
         self.configData['VHFBaseline'] = self.VHFBaseline
         with open(self.configFile, 'wb') as outFile:
-            pickle.dump(self.configData, outFile, protocol=pickle.DEFAULT_PROTOCOL)
+            pickle.dump(self.configData, outFile, protocol=3)
 
         #Popup a message that the cal was successful.
         print("succesfully performed Calibration")
@@ -142,6 +142,7 @@ class MainWindow(QMainWindow):
         self.msgBox.setIcon(QMessageBox.Information)
         self.msgBox.setText("Successfully Calibrated System")
         self.msgBox.setStandardButtons(QMessageBox.Ok)
+        self.statusBar().showMessage('Done Calibrating')
         self.msgBox.exec()
 
     def browseHistoryMethod(self):

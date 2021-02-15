@@ -3,6 +3,7 @@ import os
 import time
 from datetime import datetime, timedelta, date
 import numpy as np
+import subprocess
 
 #rtl_power -f 674.230M:674.233M:1 -g 50 -i 1 -e 1h radar.csv
 '''
@@ -46,7 +47,8 @@ def makeUhfBaseline():
 	numBins = makeNumBins(hzLow, hzHigh, binSize)
 	exitTimer = "1M"
 	command = makeCommand(fileName=fileName, hzLow=hzLow, hzHigh=hzHigh, binSize=binSize, exitTimer=exitTimer)
-	os.system(command)
+	commandCall = subprocess.Popen(command, shell=True)
+	commandCall.wait()
 	text = np.genfromtxt(fileName, delimiter=",", dtype=None)
 	csv = np.genfromtxt(fileName, delimiter=",")
 	csv = np.array(csv)
@@ -76,7 +78,8 @@ def makeVhfBaseline():
 	binSize = "200K"
 	exitTimer = "1M"
 	command = makeCommand(fileName=fileName, hzLow=hzLow, hzHigh=hzHigh, binSize=binSize, exitTimer=exitTimer)
-	os.system(command)
+	commandCall = subprocess.Popen(command, shell=True)
+	commandCall.wait()
 	text = np.genfromtxt(fileName, delimiter=",", dtype=None)
 	csv = np.genfromtxt(fileName, delimiter=",")
 	csv = np.array(csv)
