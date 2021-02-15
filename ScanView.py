@@ -1,4 +1,4 @@
-import subprocess, os, signal, pickle, io
+import subprocess, os, signal, pickle, io, sleep
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
@@ -118,6 +118,11 @@ class ScanWindow(QMainWindow):
         self.currentScanCommandCall.wait()
         print('Polling...')
         print(self.currentScanCommandCall.poll())
+        status = self.currentScanCommandCall.poll()
+        while status is not None:
+            sleep(.5)
+            status = self.currentScanCommandCall.poll()
+        print('final poll: '+ str(status))
         event.accept()
 
 
