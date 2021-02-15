@@ -51,7 +51,7 @@ class ScanWindow(QMainWindow):
         #Set up the update function
         self.updateTimer = QTimer()
         self.updateTimer.timeout.connect(self.updateMethod)
-        self.updateTimer.setInterval(500) #interval is set in milliseconds. Run the update every second while debugging, update to a minute later
+        self.updateTimer.setInterval(1000) #interval is set in milliseconds. Run the update every second while debugging, update to a minute later
         self.updateTimer.start()
 
         #Add the graph widget which shows the moving average of the power, in decibels, of the band.
@@ -103,8 +103,8 @@ class ScanWindow(QMainWindow):
                      self.data_line.setData(self.avgPower)
 
         #Don't let the plotter build up more then a thousand points. after 60 seconds, this just becomes a rolling plot
-        if len(self.avgPower) > 120:
-            self.avgPower = self.avgPower[-120:]
+        if len(self.avgPower) > 60:
+            self.avgPower = self.avgPower[-60:]
         print('Updated the graph!')
 
     def closeEvent(self, event):
@@ -113,7 +113,11 @@ class ScanWindow(QMainWindow):
         print("User has closed the window")
         self.updateTimer.stop()
         os.killpg(os.getpgid(self.currentScanCommandCall.pid), signal.SIGTERM)
+        print('Polling...')
+        print(self.currentScanCommandCall.poll())
         self.currentScanCommandCall.wait()
+        print('Polling...')
+        print(self.currentScanCommandCall.poll())
         event.accept()
 
 
