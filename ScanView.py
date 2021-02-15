@@ -112,7 +112,7 @@ class ScanWindow(QMainWindow):
         #This would probably cause problems if the user then immediately tried to start another scan.
         print("User has closed the window")
         self.updateTimer.stop()
-        os.killpg(os.getpgid(self.currentScanCommandCall), signal.SIGTERM)
+        os.killpg(os.getpgid(self.currentScanCommandCall.pid), signal.SIGTERM)
         self.currentScanCommandCall.wait()
         event.accept()
 
