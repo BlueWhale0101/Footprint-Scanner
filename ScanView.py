@@ -116,13 +116,7 @@ class ScanWindow(QMainWindow):
         os.killpg(os.getpgid(self.currentScanCommandCall.pid), signal.SIGTERM)
         print('Polling...')
         print(self.currentScanCommandCall.poll())
-        self.currentScanCommandCall.wait()
-        print('Polling...')
-        print(self.currentScanCommandCall.poll())
-        status = self.currentScanCommandCall.poll()
-        while status is not 0:
-            sleep(.5)
-            status = self.currentScanCommandCall.poll()
+        self.currentScanCommandCall.wait(10)
         print('final poll: '+ str(status))
         event.accept()
 
