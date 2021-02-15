@@ -1,13 +1,10 @@
-import sys, os.path
-import subprocess
+import subprocess, os, signal, pickle, io
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
 import pyqtgraph as pg
 import numpy as np
-import io
 import datetime
-import pickle
 
 
 class ScanWindow(QMainWindow):
@@ -79,7 +76,7 @@ class ScanWindow(QMainWindow):
         self.currentCommand = makeCommand(fileName=self.dataFileName, hzLow = self.configDict['minFreq'], hzHigh = self.configDict['maxFreq'], binSize = self.configDict['binSize'], interval = self.configDict['interval'], exitTimer = self.configDict['exitTimer'])
         #This opens the command asynchronously. poll whether the scan is running with p.poll().
         #This returns 0 if the scan is done or None if it is still going.
-        self.currentScanCommandCall = subprocess.Popen(self.currentCommand, shell=True)
+        self.currentScanCommandCall = subprocess.Popen(self.currentCommand, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
         self.currentScanTime = datetime.datetime.now()
 
     def updateMethod(self):
@@ -95,7 +92,6 @@ class ScanWindow(QMainWindow):
              dataArray = np.genfromtxt(io.StringIO(rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
              for reading in dataArray:
                  dbPower = np.median(reading[6:-2])
-
                  newPower = np.log10(np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline]))) #db have to be converted to a dec to be added and subtracted
                  if len(self.avgPower) > 3:
                      print('passing average')
@@ -116,7 +112,7 @@ class ScanWindow(QMainWindow):
         #This would probably cause problems if the user then immediately tried to start another scan.
         print("User has closed the window")
         self.updateTimer.stop()
-        self.currentScanCommandCall.terminate()
+        os.killpg(os.getpgid(self.currentScanCommandCall), signal.SIGTERM)
         self.currentScanCommandCall.wait()
         event.accept()
 
