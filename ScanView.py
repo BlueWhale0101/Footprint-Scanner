@@ -1,10 +1,11 @@
-import subprocess, os, signal, pickle, io, sleep
+import subprocess, os, signal, pickle, io
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
 import pyqtgraph as pg
 import numpy as np
 import datetime
+from time import sleep
 
 
 class ScanWindow(QMainWindow):
