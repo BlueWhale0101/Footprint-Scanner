@@ -10,8 +10,11 @@ import sys, os.path
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
+from ScanView import ScanWindow
 import datetime
 import pickle
+import pdb
+from PyQt5.QtCore import pyqtRemoveInputHook
 
 
 class MainWindow(QMainWindow):
@@ -95,24 +98,28 @@ class MainWindow(QMainWindow):
 
     def UHFScanMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
-        #Open the window
-        #Start the scan
-        #Keep scanning until the user is done.
-        #As files are written out, add the file names to the historyFile list and save them out.
-        #Keep scanning until the view is closed.
-        pass
+        #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+        scanDict = {'title':'UHF Scan', 'minFreq':'225M', 'maxFreq':'400M', 'binSize':'25k', 'interval':'1', 'exitTimer':'10m'}
+        self.UHFScanWindow = ScanWindow(scanDict)
+        #The scanView is modal, so it will block the mainGUI window until we are done with it.
+        self.UHFScanWindow.show()
 
     def VHFScanMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
+        #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+        scanDict = {'title':'VHF Scan', 'minFreq':'30M', 'maxFreq':'50M', 'binSize':'25k', 'interval':'1', 'exitTimer':'10m'}
+        self.VHFScanWindow = ScanWindow(scanDict)
+        #The scanView is modal, so it will block the mainGUI window until we are done with it.
+        self.VHFScanWindow.show()
 
-        #Keep scanning until the view is closed.
-        pass
 
     def FullScanMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
-
-        #Keep scanning until the view is closed.
-        pass
+        #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+        scanDict = {'title':'UHF Scan', 'minFreq':'30M', 'maxFreq':'1700M', 'binSize':'1M', 'interval':'30', 'exitTimer':'20m'}
+        self.UHFScanWindow = ScanWindow(scanDict)
+        #The scanView is modal, so it will block the mainGUI window until we are done with it.
+        self.UHFScanWindow.show()
 
     def calibrateMethod(self):
         #Popup message box to inform of processself.msgBox = QMessageBox()
