@@ -97,7 +97,6 @@ class ScanWindow(QMainWindow):
                  dbPower = np.median(reading[6:-2])
                  newPower = np.log10(np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline]))) #db have to be converted to a dec to be added and subtracted
                  if len(self.avgPower) > 3:
-                     print('passing average')
                      movingAvg = np.average([self.avgPower[-2], self.avgPower[-1], newPower]) #If there is enough data in the list,
                      self.avgPower.append(movingAvg)
                      self.data_line.setData(self.avgPower)
@@ -108,7 +107,6 @@ class ScanWindow(QMainWindow):
         #Don't let the plotter build up more then 60 points. after 60 seconds, this just becomes a rolling plot
         if len(self.avgPower) > 60:
             self.avgPower = self.avgPower[-60:]
-        print('Updated the graph!')
 
     def closeEvent(self, event):
         #Make sure we are gracefully ending the scan and not just leaving the process running in the background.
