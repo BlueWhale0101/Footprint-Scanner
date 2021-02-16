@@ -98,7 +98,8 @@ class ScanWindow(QMainWindow):
                  return
              #Get the numeric data
              dataArray = np.genfromtxt(io.StringIO(rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
-             dataArray
+             print("#######################")
+             print(dataArray)
              for reading in dataArray:
                  dbPower = np.median(reading[6:-2])
                  newPower = np.log10(np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline]))) #db have to be converted to a dec to be added and subtracted
