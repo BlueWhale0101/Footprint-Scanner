@@ -112,7 +112,7 @@ class ScanWindow(QMainWindow):
                 dbPower = np.median(reading[6:-2])
                 # db have to be converted to a dec to be added and subtracted
                 newPower = np.log10(
-                    np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline])))
+                    np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline][0])))
                 if len(self.avgPower) > 3:
                     # If there is enough data in the list,
                     movingAvg = np.average(
