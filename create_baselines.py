@@ -98,7 +98,6 @@ def makeVhfBaseline():
 
 	baselineData = np.reshape(bucketReadings, (-1,numBins))
 	medianData = np.median(baselineData, axis = 0)
-
 	return medianData
 
 if __name__ == '__main__':

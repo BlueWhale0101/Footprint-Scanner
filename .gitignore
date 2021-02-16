@@ -1,6 +1,7 @@
 # Compiled source #
 ###################
 *.com
+*.c
 *.class
 *.dll
 *.exe
@@ -19,6 +20,10 @@
 *.rar
 *.tar
 *.zip
+*.pyc
+
+# config files #
+*.scn
 
 # Logs and databases #
 ######################
