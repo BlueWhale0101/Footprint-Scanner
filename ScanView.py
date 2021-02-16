@@ -93,10 +93,12 @@ class ScanWindow(QMainWindow):
              rawData = inStream.read()
              timeout = 0
              if rawData == b'':
-                 #some issues with reading too fast...
+                 #some issues with reading too fast
+                 print('No data, skip')
                  return
              #Get the numeric data
              dataArray = np.genfromtxt(io.StringIO(rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
+             dataArray
              for reading in dataArray:
                  dbPower = np.median(reading[6:-2])
                  newPower = np.log10(np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline]))) #db have to be converted to a dec to be added and subtracted
