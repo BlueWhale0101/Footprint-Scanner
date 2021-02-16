@@ -86,7 +86,7 @@ class ScanWindow(QMainWindow):
             #The scan ended. Start a new one.
             print('New file: '+self.dataFileName)
             self.initScanMethod()
-            sleep(.5)
+            sleep(1)
         #Now that we are sure a scan is going, update the data we are plotting
         with io.FileIO(self.dataFileName) as inStream:
             #Get all the data which has been written since the last time.
