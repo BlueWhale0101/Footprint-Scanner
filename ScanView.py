@@ -91,6 +91,12 @@ class ScanWindow(QMainWindow):
         with io.FileIO(self.dataFileName) as inStream:
             #Get all the data which has been written since the last time.
              rawData = inStream.read()
+             timeout = 0
+             while rawData = b'' and timeout<4:
+                 #some issues with reading too fast... wait for the data to populate
+                 sleep(.5)
+                 rawData = inStream.read()
+                 timeout += 1
              #Get the numeric data
              dataArray = np.genfromtxt(io.StringIO(rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
              for reading in dataArray:
