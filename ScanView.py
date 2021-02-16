@@ -99,7 +99,6 @@ class ScanWindow(QMainWindow):
              #Get the numeric data
              dataArray = np.genfromtxt(io.StringIO(rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
              print("#######################")
-             print(dataArray)
              for reading in dataArray:
                  dbPower = np.median(reading[6:-2])
                  newPower = np.log10(np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline]))) #db have to be converted to a dec to be added and subtracted
@@ -110,7 +109,7 @@ class ScanWindow(QMainWindow):
                  else:
                      self.avgPower.append(newPower)
                      self.data_line.setData(self.avgPower)
-
+            print(self.avgPower)
         #Don't let the plotter build up more then 60 points. after 60 seconds, this just becomes a rolling plot
         if len(self.avgPower) > 60:
             self.avgPower = self.avgPower[-60:]
