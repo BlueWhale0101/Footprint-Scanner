@@ -73,7 +73,7 @@ class ScanWindow(QMainWindow):
     def initScanMethod(self):
         #we have not started the first scan. Build the Command
         #configDict has keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        self.dataFileName = "Data/" + datetime.datetime.now().strftime('%y%m%d%H%M%S') + '_scan.csv'
+        self.dataFileName = "Data/" + datetime.datetime.now().strftime('%d%m%y_%H%M%S') + '_scan.csv'
         self.currentCommand = makeCommand(fileName=self.dataFileName, hzLow = self.configDict['minFreq'], hzHigh = self.configDict['maxFreq'], binSize = self.configDict['binSize'], interval = self.configDict['interval'], exitTimer = self.configDict['exitTimer'])
         #This opens the command asynchronously. poll whether the scan is running with p.poll().
         #This returns 0 if the scan is done or None if it is still going.
@@ -84,7 +84,9 @@ class ScanWindow(QMainWindow):
         #Check that the scan is still running. If it has stopped, start a new one
         if self.currentScanCommandCall.poll() == 0:
             #The scan ended. Start a new one.
+            print('New file: '+self.dataFileName)
             self.initScanMethod()
+            sleep(.5)
         #Now that we are sure a scan is going, update the data we are plotting
         with io.FileIO(self.dataFileName) as inStream:
             #Get all the data which has been written since the last time.
@@ -103,7 +105,7 @@ class ScanWindow(QMainWindow):
                      self.avgPower.append(newPower)
                      self.data_line.setData(self.avgPower)
 
-        #Don't let the plotter build up more then a thousand points. after 60 seconds, this just becomes a rolling plot
+        #Don't let the plotter build up more then 60 points. after 60 seconds, this just becomes a rolling plot
         if len(self.avgPower) > 60:
             self.avgPower = self.avgPower[-60:]
         print('Updated the graph!')
