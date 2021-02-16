@@ -87,49 +87,64 @@ class ScanWindow(QMainWindow):
         self.currentScanCommandCall = subprocess.Popen(
             self.currentCommand, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
         self.currentScanTime = datetime.datetime.now()
+        while not os.path.exists(self.dataFileName):
+            sleep(.5)
+        self.inStream = io.FileIO(self.dataFileName)
 
     def updateMethod(self):
         # Check that the scan is still running. If it has stopped, start a new one
         if self.currentScanCommandCall.poll() == 0:
             # The scan ended. Start a new one.
             print('New file: ' + self.dataFileName)
+            self.inStream.close()
             self.initScanMethod()
-            sleep(1)
         # Now that we are sure a scan is going, update the data we are plotting
-        with io.FileIO(self.dataFileName) as inStream:
-            # Get all the data which has been written since the last time.
-            rawData = inStream.read()
-            timeout = 0
-            if rawData == b'':
-                # some issues with reading too fast
-                print('No data, skip')
-                return
-            # Get the numeric data
-            dataArray = np.genfromtxt(io.StringIO(
-                rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
-            for reading in dataArray:
+        # Get all the data which has been written since the last time.
+        rawData = self.inStream.read()
+        counter = 0
+        if rawData == b'':
+            # some issues with reading too fast
+            print('No data, skip')
+            return
+        # Get the numeric data
+        dataArray = np.genfromtxt(io.StringIO(
+            rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
+        for reading in dataArray:
+            counter += 1
+            print(counter)
+            if self.configDict['title'] == 'Full Scan':
+                dbPower = reading[-1] #In full scan, the bins are so large that only one value is returned.
+            else:
                 dbPower = np.median(reading[6:-2])
-                # db have to be converted to a dec to be added and subtracted
-                #newPower = np.log10(
-                    #np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline][0])))
-                newPower = dbPower
-                if len(self.avgPower) > 3:
-                    # If there is enough data in the list,
-                    movingAvg = np.average(
-                        [self.avgPower[-2], self.avgPower[-1], newPower])
-                    self.avgPower.append(movingAvg)
-                    self.data_line.setData(self.avgPower)
-                else:
-                    self.avgPower.append(newPower)
-                    self.data_line.setData(self.avgPower)
-        # Don't let the plotter build up more then 60 points. after 60 seconds, this just becomes a rolling plot
-        if len(self.avgPower) > 60:
-            self.avgPower = self.avgPower[-60:]
+            # db have to be converted to a dec to be added and subtracted
+            #newPower = np.log10(
+                #np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline][0])))
+            newPower = dbPower
+            if len(self.avgPower) > 3:
+                # If there is enough data in the list,
+                movingAvg = np.average(
+                    [self.avgPower[-2], self.avgPower[-1], newPower])
+                self.avgPower.append(movingAvg)
+            else:
+                self.avgPower.append(newPower)
+        # Don't let the plotter build up more then 300 points.
+        print('end fx length')
+        print(len(self.avgPower))
+        if len(self.avgPower) > 1000:
+            self.avgPower = self.avgPower[-1000:]
+            print('new Length: '+str(len(self.avgPower)))
+        #Update the graph
+        self.data_line.setData(self.avgPower)
+        # from pdb import set_trace
+        # from PyQt5.QtCore import pyqtRemoveInputHook
+        # pyqtRemoveInputHook()
+        # set_trace()
 
     def closeEvent(self, event):
         # Make sure we are gracefully ending the scan and not just leaving the process running in the background.
         # This would probably cause problems if the user then immediately tried to start another scan.
         print("User has closed the window")
+        self.inStream.close()
         self.updateTimer.stop()
         os.killpg(os.getpgid(self.currentScanCommandCall.pid), signal.SIGTERM)
         self.currentScanCommandCall.wait(10)
