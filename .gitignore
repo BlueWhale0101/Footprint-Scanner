@@ -19,8 +19,8 @@
 *.jar
 *.rar
 *.tar
-*.zip
 *.pyc
+*.zip
 
 # config files #
 *.scn
