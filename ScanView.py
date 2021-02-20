@@ -29,11 +29,14 @@ class ScanWindow(QMainWindow):
         self.currentScanTime = 0
         if self.configDict['title'] == 'UHF Scan':
             self.scanTypeBaseline = 'UHFBaseline'
+            self.scanType = 'UHF'
         elif self.configDict['title'] == 'VHF Scan':
             self.scanTypeBaseline = 'VHFBaseline'
+            self.scanType = 'VHF'
         elif self.configDict['title'] == 'Full Scan':
             # For full scans, use the UHF baseline since it's more relevant.
             self.scanTypeBaseline = 'UHFBaseline'
+            self.scanType = 'Full'
         else:
             # Something is wrong, no baseline is passed in.
             from warnings import warn
@@ -78,8 +81,8 @@ class ScanWindow(QMainWindow):
     def initScanMethod(self):
         # we have not started the first scan. Build the Command
         # configDict has keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        self.dataFileName = "Data/" + \
-            datetime.datetime.now().strftime('%d%m%y_%H%M%S') + '_scan.csv'
+        self.dataFileName = "Data/" +\
+            datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + self.scanType + '_scan.csv'
         self.currentCommand = makeCommand(fileName=self.dataFileName, hzLow=self.configDict['minFreq'], hzHigh=self.configDict[
                                           'maxFreq'], binSize=self.configDict['binSize'], interval=self.configDict['interval'], exitTimer=self.configDict['exitTimer'])
         # This opens the command asynchronously. poll whether the scan is running with p.poll().
@@ -89,6 +92,10 @@ class ScanWindow(QMainWindow):
         self.currentScanTime = datetime.datetime.now()
         while not os.path.exists(self.dataFileName):
             sleep(.5)
+        from pdb import set_trace
+        from PyQt5.QtCore import pyqtRemoveInputHook
+        pyqtRemoveInputHook()
+        set_trace()
         self.inStream = io.FileIO(self.dataFileName)
 
     def updateMethod(self):
@@ -110,30 +117,34 @@ class ScanWindow(QMainWindow):
         dataArray = np.genfromtxt(io.StringIO(
             rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
         for reading in dataArray:
-            counter += 1
-            print(counter)
             if self.configDict['title'] == 'Full Scan':
-                dbPower = reading[-1] #In full scan, the bins are so large that only one value is returned.
+                # In full scan, the bins are so large that only one value is returned.
+                dbPower = reading[-1]
             else:
                 dbPower = np.median(reading[6:-2])
             # db have to be converted to a dec to be added and subtracted
-            #newPower = np.log10(
-                #np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline][0])))
-            newPower = dbPower
+            # newPower = np.log10(
+                # np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline][0])))
+            if np.isnan(newPower):
+                from pdb import set_trace
+                from PyQt5.QtCore import pyqtRemoveInputHook
+                pyqtRemoveInputHook()
+                set_trace()
             if len(self.avgPower) > 3:
+                self.avgPower.append(newPower)
                 # If there is enough data in the list,
-                movingAvg = np.average(
-                    [self.avgPower[-2], self.avgPower[-1], newPower])
-                self.avgPower.append(movingAvg)
+                # movingAvg = np.average(
+                #     [self.avgPower[-2], self.avgPower[-1], newPower])
+                # self.avgPower.append(movingAvg)
+                # print('New Entry:')
+                # print(movingAvg)
             else:
                 self.avgPower.append(newPower)
-        # Don't let the plotter build up more then 300 points.
-        print('end fx length')
-        print(len(self.avgPower))
+        # Don't let the plotter build up more then 1000 points.
         if len(self.avgPower) > 1000:
             self.avgPower = self.avgPower[-1000:]
-            print('new Length: '+str(len(self.avgPower)))
-        #Update the graph
+            print('new Length: ' + str(len(self.avgPower)))
+        # Update the graph
         self.data_line.setData(self.avgPower)
         # from pdb import set_trace
         # from PyQt5.QtCore import pyqtRemoveInputHook
