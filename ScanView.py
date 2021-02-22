@@ -6,11 +6,22 @@ import io
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
-import pyqtgraph as pg
+
 import numpy as np
 import datetime
 from time import sleep
+#Imports for spectrogram
+import matplotlib
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 
+class MplCanvas(FigureCanvasQTAgg):
+    #This is a class for setting up the embedded matplotlib figure
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
 
 class ScanWindow(QMainWindow):
 
@@ -47,14 +58,15 @@ class ScanWindow(QMainWindow):
 
         # Start the first scan so there is data in the pipe
         self.initScanMethod()
-        # Show the scan Data
-        self.powerGraph = pg.PlotWidget()
-        self.powerGraph.setBackground((59, 79, 65))
-        self.powerGraph.showGrid(x=True, y=True)
+        #Init the main graph
         self.avgPower = []
-        pen = pg.mkPen(color=(242, 245, 66))
-        self.data_line = self.powerGraph.plot(self.avgPower, pen=pen)
+        self.timeData = []
 
+        # Show the scan Data
+        self.powerGraph = MplCanvas(self, width=5, height=4, dpi=100)
+        self.plotRef = None
+        self.axesRef = self.powerGraph.figure.axes[0]
+        self.axesRef.set_xlim(0, 1000)
         # call the update event This drives both the scanning calls and the graph updating
         # Set up the update function
         self.updateTimer = QTimer()
@@ -92,10 +104,6 @@ class ScanWindow(QMainWindow):
         self.currentScanTime = datetime.datetime.now()
         while not os.path.exists(self.dataFileName):
             sleep(.5)
-        from pdb import set_trace
-        from PyQt5.QtCore import pyqtRemoveInputHook
-        pyqtRemoveInputHook()
-        set_trace()
         self.inStream = io.FileIO(self.dataFileName)
 
     def updateMethod(self):
@@ -121,17 +129,16 @@ class ScanWindow(QMainWindow):
                 # In full scan, the bins are so large that only one value is returned.
                 dbPower = reading[-1]
             else:
-                dbPower = np.median(reading[6:-2])
+                dbPower = np.average(reading[6:-2])
             # db have to be converted to a dec to be added and subtracted
-            # newPower = np.log10(
-                # np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline][0])))
+            # This is included in noise filtering algorithm module
+            newPower = dbPower
             if np.isnan(newPower):
-                from pdb import set_trace
-                from PyQt5.QtCore import pyqtRemoveInputHook
-                pyqtRemoveInputHook()
-                set_trace()
+                #Just for now, skip all NaN values
+                continue
             if len(self.avgPower) > 3:
                 self.avgPower.append(newPower)
+                self.timeData.append(len(self.avgPower))
                 # If there is enough data in the list,
                 # movingAvg = np.average(
                 #     [self.avgPower[-2], self.avgPower[-1], newPower])
@@ -140,16 +147,23 @@ class ScanWindow(QMainWindow):
                 # print(movingAvg)
             else:
                 self.avgPower.append(newPower)
+                self.timeData.append(len(self.avgPower))
         # Don't let the plotter build up more then 1000 points.
         if len(self.avgPower) > 1000:
             self.avgPower = self.avgPower[-1000:]
             print('new Length: ' + str(len(self.avgPower)))
+            self.timeData = self.timeData[0:1000]
+
         # Update the graph
-        self.data_line.setData(self.avgPower)
-        # from pdb import set_trace
-        # from PyQt5.QtCore import pyqtRemoveInputHook
-        # pyqtRemoveInputHook()
-        # set_trace()
+        if self.plotRef is None:
+            plot_refs = self.powerGraph.axes.plot(self.timeData, self.avgPower, 'r')
+            self.plotRef = plot_refs[0]
+        else:
+            # We have a reference, we can use it to update the data for that line.
+            self.plotRef.set_ydata(self.avgPower)
+            self.plotRef.set_xdata(self.timeData)
+
+        self.powerGraph.draw()
 
     def closeEvent(self, event):
         # Make sure we are gracefully ending the scan and not just leaving the process running in the background.
