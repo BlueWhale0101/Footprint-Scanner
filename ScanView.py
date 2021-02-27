@@ -15,6 +15,8 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+import seaborn as sns
+import matplotlib.pylab as plt
 
 class MplCanvas(FigureCanvasQTAgg):
     #This is a class for setting up the embedded matplotlib figure
@@ -61,6 +63,8 @@ class ScanWindow(QMainWindow):
         #Init the main graph
         self.avgPower = []
         self.timeData = []
+        
+        self.binData = np.array()
 
         # Show the scan Data
         self.powerGraph = MplCanvas(self, width=5, height=4, dpi=100)
@@ -116,6 +120,7 @@ class ScanWindow(QMainWindow):
         # Now that we are sure a scan is going, update the data we are plotting
         # Get all the data which has been written since the last time.
         rawData = self.inStream.read()
+
         counter = 0
         if rawData == b'':
             # some issues with reading too fast
@@ -124,6 +129,34 @@ class ScanWindow(QMainWindow):
         # Get the numeric data
         dataArray = np.genfromtxt(io.StringIO(
             rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
+       
+
+        #### determine how to slice the data (can be passed 1+ data "bursts" in dataArray) ######
+        bucketReadings = dataArray[:,6:-1] ### slice off headings
+        identifier = str(dataArray[0][1]) ### grab timestamp
+        numRows = 0
+        for i in range(len(dataArracleary)):
+            if str(dataArray[i][1]) == identifier: ### compare current timestamp to reference
+                numRows+=1
+            else:
+                break
+        print(numRows)
+        numBins = numRows * len(bucketReadings[0])
+        print(numBins)
+
+        formattedData = np.reshape(bucketReadings, (-1,numBins))
+        #### each row in formattedData is a burst without headings ##############################
+        
+        # for reading in formattedData:
+        #     # np.nan_to_num(x_tt1[:, 1:]) + np.isnan(x_tt1[:, 1:]) * f_mean_Pre85
+        #     reading_noNAN = np.nan_to_num(reading) + np.isnan(reading) * 0
+        #     self.binData = np.append(self.binData, reading_noNAN)
+        # if len(self.binData > 1000):
+        #     self.binData = self.binData[-1000:]
+
+
+
+
         for reading in dataArray:
             if self.configDict['title'] == 'Full Scan':
                 # In full scan, the bins are so large that only one value is returned.
@@ -156,7 +189,9 @@ class ScanWindow(QMainWindow):
 
         # Update the graph
         if self.plotRef is None:
-            plot_refs = self.powerGraph.axes.plot(self.timeData, self.avgPower, 'r')
+            # plot_refs = self.powerGraph.axes.plot(self.timeData, self.avgPower, 'r')
+            # sns.heatmap(uniform_data, linewidth=0.5)
+            plot_refs = self.powerGraph.sns.heatmap(self.binData, linewidth=0.5)
             self.plotRef = plot_refs[0]
         else:
             # We have a reference, we can use it to update the data for that line.
@@ -176,7 +211,8 @@ class ScanWindow(QMainWindow):
         event.accept()
 
 
-# from pdb import set_trace
-# from PyQt5.QtCore import pyqtRemoveInputHook
-# pyqtRemoveInputHook()
-# set_trace()
+
+
+
+
+

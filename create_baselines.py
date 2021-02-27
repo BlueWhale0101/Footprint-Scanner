@@ -44,7 +44,7 @@ def makeUhfBaseline():
 	hzLow = "300M"
 	hzHigh = "1766M"
 	binSize = "1M"
-	numBins = makeNumBins(hzLow, hzHigh, binSize)
+	# numBins = makeNumBins(hzLow, hzHigh, binSize)
 	exitTimer = "1M"
 	command = makeCommand(fileName=fileName, hzLow=hzLow, hzHigh=hzHigh, binSize=binSize, exitTimer=exitTimer)
 	commandCall = subprocess.Popen(command, shell=True)
