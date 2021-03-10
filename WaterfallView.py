@@ -1,15 +1,16 @@
+from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
+from PyQt5.QtCore import Qt, QTimer
+from makeCall import *
+import numpy as np
+import datetime
+from time import sleep
 import subprocess
 import os
 import signal
 import pickle
 import io
-from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
-from PyQt5.QtCore import Qt, QTimer
-from makeCall import *
+import struct
 
-import numpy as np
-import datetime
-from time import sleep
 #Imports for spectrogram
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -38,6 +39,7 @@ class WaterfallWindow(QMainWindow):
             self.configData = pickle.load(inFile)
         # The passed in configDict must have the keys title, minFreq, maxFreq, binSize, interval, exitTimer
         self.configDict = configDict
+        self.actualBandwidth = None #this is set in the initScanMethod
         self.statusBar()
         self.currentScanTime = 0
         if self.configDict['title'] == 'UHF Scan':
@@ -60,29 +62,21 @@ class WaterfallWindow(QMainWindow):
 
         # Start the first scan so there is data in the pipe
         self.initScanMethod()
+
         #Init the main graph
-        self.avgPower = []
-        self.timeData = []
+        self.dataMatrix = np.array([])
 
         # Show the scan Data
-        self.powerGraph = MplCanvas(self, width=8, height=5, dpi=150)
-        self.plotRef = None
+        self.powerGraph = MplCanvas(self, width=8, height=8, dpi=150)
         self.axesRef = self.powerGraph.figure.axes[0]
-        #self.axesRef.set_xlim(0, 1000)
+        self.axesRef.imshow(np.array([[0, 0]]), aspect='auto')
 
-        #Debug data, sample plot
-        uniform_data = np.random.random((1600, 1600))
-        self.axesRef.imshow(uniform_data)
-        # from PyQt5.QtCore import pyqtRemoveInputHook
-        # from pdb import set_trace
-        # pyqtRemoveInputHook()
-        # set_trace()
         # call the update event This drives both the scanning calls and the graph updating
         # Set up the update function
         self.updateTimer = QTimer()
         self.updateTimer.timeout.connect(self.updateMethod)
         # interval is set in milliseconds. Run the update every second while debugging, update to a minute later
-        self.updateTimer.setInterval(1000)
+        self.updateTimer.setInterval(500)
         self.updateTimer.start()
 
         # Add the graph widget which shows the moving average of the power, in decibels, of the band.
@@ -90,6 +84,12 @@ class WaterfallWindow(QMainWindow):
 
         # Close Button setup
         self.Close_Button = QPushButton('End Scan')
+        self.Close_Button.setStyleSheet("QPushButton{ border-radius:8px;\
+                            height: 30px;\
+                            border: 1px solid;\
+                            background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, \
+                            stop: 0 #ccd9ff, stop: 1 #2b50bd); }\
+                            QPushButton:pressed {background-color: #fae22d}")
         self.Close_Button.clicked.connect(self.close)
         MainLayout.addWidget(self.Close_Button)
 
@@ -107,18 +107,75 @@ class WaterfallWindow(QMainWindow):
             datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + self.scanType + '_scan'
         self.currentCommand = makeScanCall(fileName=self.dataFileName, hzLow = self.configDict['hzLow'], hzHigh = self.configDict['hzHigh'], \
             numBins = self.configDict['numBins'], gain = self.configDict['gain'],  repeats= self.configDict['repeats'], exitTimer = self.configDict['exitTimer'])
-        self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
+        if self.actualBandwidth == None:
+            self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
         # This opens the command asynchronously. poll whether the scan is running with p.poll().
         # This returns 0 if the scan is done or None if it is still going.
         self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, stdout = subprocess.PIPE,\
                                         stdin = subprocess.PIPE, stderr = subprocess.PIPE, preexec_fn=os.setsid)
+        print('Running command '+self.currentCommand)
         self.currentScanTime = datetime.datetime.now()
         while not os.path.exists(self.dataFileName+'.bin'):
             sleep(.5)
         self.dataFileStream = open(self.dataFileName+'.bin', 'rb')
 
     def updateMethod(self):
-        pass
+        #check if there is a process
+        if hasattr(self, 'currentScanCommandProcess') is True:
+            #There is a process, but it has stopped
+            if self.currentScanCommandProcess.poll() == 0:
+                self.initScanMethod()
+        else:#There is no process
+            self.initScanMethod()
+        #Get the updated data
+        self.updateFromBin()
+        if self.dataMatrix.size == 0:
+            self.axesRef.imshow(np.array([[0,0]]), aspect='auto')
+        else:
+            self.axesRef.imshow(self.dataMatrix, aspect='auto')
+        self.powerGraph.draw()
+
+    def updateFromBin(self):
+        #Read in all the new data
+        lastPos = self.dataFileStream.tell()
+        allNewData = self.dataFileStream.read()
+
+        if len(allNewData) == 0:
+            print('nothing written yet...')
+            return
+        elif np.mod(len(allNewData), self.binaryLineLength) > 0:
+            #There is a partial row here. keep the complete rows,
+            #and reset the pointer to the start of the next row for next update
+            numLines = np.floor(len(allNewData)/self.binaryLineLength)
+            self.dataFileStream.seek(lastPos)
+            allNewData = self.dataFileStream.read(int(numLines*self.binaryLineLength))
+            print('number of expected lines: '+str(numLines))
+            if numLines == 0:
+                return
+        elif len(allNewData) < self.binaryLineLength:
+            #There is not enough data for a full line. reset the pointer
+            print('Not enough data yet...')
+            print('Current Pointer: '+str(self.dataFileStream.tell()))
+            self.dataFileStream.seek(lastPos)
+            #This is not the first pass. we can just skip this update,
+            #and wait for the next update cycle
+            return
+
+        print('Found '+str(len(allNewData))+' of data')
+        allNewDataStream = io.BytesIO(allNewData)
+        newLineBinary = allNewDataStream.read(self.binaryLineLength)
+        #from this block of data, unpack one row at a time and add them to the matrix
+        while newLineBinary != b'':
+            newLine = struct.unpack('f'*int(self.binaryLineLength/4), newLineBinary)
+            #Update the data matrix
+            if self.dataMatrix.size == 0:
+                self.dataMatrix = np.array([list(newLine)])
+            else:
+                self.dataMatrix = np.append(self.dataMatrix, [list(newLine)], axis=0)
+            #read the data for the next line
+            newLineBinary = allNewDataStream.read(self.binaryLineLength)
+        if self.dataMatrix.shape[0] > 150:
+            self.dataMatrix = self.dataMatrix[self.dataMatrix.shape[0]-150:, :] #just the last 150 rows
 
     def closeEvent(self, event):
         # Make sure we are gracefully ending the scan and not just leaving the process running in the background.
@@ -130,8 +187,9 @@ class WaterfallWindow(QMainWindow):
         self.currentScanCommandProcess.wait(10)
         event.accept()
 
-
-  #from PyQt5.QtCore import pyqtRemoveInputHook
-  #from pdb import set_trace
-  #pyqtRemoveInputHook()
-  #set_trace()
+    def debug_trace(self):
+      '''Set a tracepoint in the Python debugger that works with Qt'''
+      from PyQt5.QtCore import pyqtRemoveInputHook
+      from pdb import set_trace
+      pyqtRemoveInputHook()
+      set_trace()

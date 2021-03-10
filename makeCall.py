@@ -68,8 +68,8 @@ def calcLineLength(call):
     print('using freq range '+hzLow+ ' to '+hzHigh)
     hzLow = int(hzLow)
     hzHigh = int(hzHigh)
-    #Now that we have the freqs in Hz, calculate the number of hops
-    binaryLineLength = math.ceil((hzHigh - hzLow)/BW)*4*numBins
+    #Now that we have the freqs in Hz, calculate the number of bits
+    binaryLineLength = int(math.ceil((hzHigh - hzLow)/BW)*4*numBins)
     print('Number of bits in a row is '+str(binaryLineLength))
     return binaryLineLength, BW
 
