@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QMainWindow, QMessageBox, QPushButton, QScrollArea, 
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
 from ScanView import ScanWindow
+from WaterfallView import WaterfallWindow
 import datetime
 import pickle
 import pdb
@@ -98,16 +99,16 @@ class MainWindow(QMainWindow):
 
     def UHFScanMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
-        #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        scanDict = {'title':'UHF Scan', 'minFreq':'225M', 'maxFreq':'400M', 'binSize':'25k', 'interval':'1', 'exitTimer':'10m'}
-        self.ScanWindow = ScanWindow(scanDict)
+        #need keys fileName, hzLow, hzHigh, numBins, gain, repeats, exitTimer
+        scanDict = {'title':'UHF Scan', 'hzLow':'225000000', 'hzHigh':'400000000', 'gain': '500', 'numBins':'140', 'repeats':'10', 'exitTimer':'10m'}
+        self.ScanWindow = WaterfallWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
         self.ScanWindow.show()
 
     def VHFScanMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
         #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        scanDict = {'title':'VHF Scan', 'minFreq':'30M', 'maxFreq':'50M', 'binSize':'25k', 'interval':'1', 'exitTimer':'10m'}
+        scanDict = {'title':'VHF Scan', 'hzLow':'30000000', 'hzHigh':'50000000', 'numBins':'140', 'gain': '500', 'repeats':'10', 'exitTimer':'10m'}
         self.ScanWindow = ScanWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
         self.ScanWindow.show()
@@ -116,7 +117,8 @@ class MainWindow(QMainWindow):
     def FullScanMethod(self):
         #Open a new window with immediate tactical info (Relative power level)
         #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        scanDict = {'title':'Full Scan', 'minFreq':'30M', 'maxFreq':'1700M', 'binSize':'1M', 'interval':'30', 'exitTimer':'20m'}
+
+        scanDict = {'title':'Full Scan', 'hzLow':'30000000', 'hzHigh':'1700000000', 'numBins':'28', 'gain': '500', 'repeats':'2', 'exitTimer':'15m'}
         self.ScanWindow = ScanWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
         self.ScanWindow.show()
