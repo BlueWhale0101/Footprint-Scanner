@@ -45,13 +45,16 @@ class WaterfallWindow(QMainWindow):
         if self.configDict['title'] == 'UHF Scan':
             self.scanTypeBaseline = 'UHFBaseline'
             self.scanType = 'UHF'
+            intTime = 500 #the interval time is adjusted depending on the type of scan
         elif self.configDict['title'] == 'VHF Scan':
             self.scanTypeBaseline = 'VHFBaseline'
             self.scanType = 'VHF'
+            intTime = 100 #the interval time is adjusted depending on the type of scan
         elif self.configDict['title'] == 'Full Scan':
             # For full scans, use the UHF baseline since it's more relevant.
             self.scanTypeBaseline = 'UHFBaseline'
             self.scanType = 'Full'
+            intTime = 1000 #the interval time is adjusted depending on the type of scan
         else:
             # Something is wrong, no baseline is passed in.
             from warnings import warn
@@ -67,7 +70,7 @@ class WaterfallWindow(QMainWindow):
         self.dataMatrix = np.array([])
 
         # Show the scan Data
-        self.powerGraph = MplCanvas(self, width=8, height=8, dpi=150)
+        self.powerGraph = MplCanvas(self)
         self.axesRef = self.powerGraph.figure.axes[0]
         self.axesRef.imshow(np.array([[0, 0]]), aspect='auto')
 
@@ -76,7 +79,7 @@ class WaterfallWindow(QMainWindow):
         self.updateTimer = QTimer()
         self.updateTimer.timeout.connect(self.updateMethod)
         # interval is set in milliseconds. Run the update every second while debugging, update to a minute later
-        self.updateTimer.setInterval(500)
+        self.updateTimer.setInterval(intTime)
         self.updateTimer.start()
 
         # Add the graph widget which shows the moving average of the power, in decibels, of the band.
@@ -111,8 +114,9 @@ class WaterfallWindow(QMainWindow):
             self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
         # This opens the command asynchronously. poll whether the scan is running with p.poll().
         # This returns 0 if the scan is done or None if it is still going.
-        self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, stdout = subprocess.PIPE,\
-                                        stdin = subprocess.PIPE, stderr = subprocess.PIPE, preexec_fn=os.setsid)
+        #self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, stdout = subprocess.PIPE,\
+                                        #stderr = subprocess.PIPE, preexec_fn=os.setsid)
+        self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, preexec_fn=os.setsid)
         print('Running command '+self.currentCommand)
         self.currentScanTime = datetime.datetime.now()
         while not os.path.exists(self.dataFileName+'.bin'):
@@ -122,8 +126,9 @@ class WaterfallWindow(QMainWindow):
     def updateMethod(self):
         #check if there is a process
         if hasattr(self, 'currentScanCommandProcess') is True:
-            #There is a process, but it has stopped
+            #There is a process
             if self.currentScanCommandProcess.poll() == 0:
+                #there is a process, but it has stopped
                 self.initScanMethod()
         else:#There is no process
             self.initScanMethod()
@@ -144,21 +149,24 @@ class WaterfallWindow(QMainWindow):
             print('nothing written yet...')
             return
         elif np.mod(len(allNewData), self.binaryLineLength) > 0:
-            #There is a partial row here. keep the complete rows,
+            #There is a partial row here, ane there may be less than a full row.
+            #keep the complete rows,
             #and reset the pointer to the start of the next row for next update
             numLines = np.floor(len(allNewData)/self.binaryLineLength)
             self.dataFileStream.seek(lastPos)
-            allNewData = self.dataFileStream.read(int(numLines*self.binaryLineLength))
-            print('number of expected lines: '+str(numLines))
             if numLines == 0:
+                #We got less then a row. just end the update and wait for the next cycle
                 return
+            allNewData = self.dataFileStream.read(int(numLines*self.binaryLineLength))
+            print('number of bits read in: '+str(len(allNewData)))
+            print('number of expected lines: '+str(numLines))
+
         elif len(allNewData) < self.binaryLineLength:
             #There is not enough data for a full line. reset the pointer
             print('Not enough data yet...')
             print('Current Pointer: '+str(self.dataFileStream.tell()))
             self.dataFileStream.seek(lastPos)
-            #This is not the first pass. we can just skip this update,
-            #and wait for the next update cycle
+            #wait for the next update cycle
             return
 
         print('Found '+str(len(allNewData))+' of data')

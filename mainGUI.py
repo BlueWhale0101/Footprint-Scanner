@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         #Open a new window with immediate tactical info (Relative power level)
         #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
 
-        scanDict = {'title':'Full Scan', 'hzLow':'30000000', 'hzHigh':'1700000000', 'numBins':'10', 'gain': '500', 'repeats':'1', 'exitTimer':'30s'}
+        scanDict = {'title':'Full Scan', 'hzLow':'30000000', 'hzHigh':'1700000000', 'numBins':'10', 'gain': '500', 'repeats':'1', 'exitTimer':'10m'}
         self.ScanWindow = WaterfallWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
         self.ScanWindow.show()
