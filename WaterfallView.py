@@ -16,7 +16,7 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import seaborn as sns
+#import seaborn as sns
 import matplotlib.pylab as plt
 
 class MplCanvas(FigureCanvasQTAgg):
@@ -72,8 +72,10 @@ class WaterfallWindow(QMainWindow):
         # Show the scan Data
         self.powerGraph = MplCanvas(self)
         self.axesRef = self.powerGraph.figure.axes[0]
-        self.axesRef.imshow(np.array([[0, 0]]), aspect='auto')
-
+        heatMap = self.axesRef.imshow(np.array([[0, 0]]), cmap='inferno', aspect='auto', norm=None, vmin=-60, vmax=0)
+        #self.debug_trace()
+        self.powerGraph.figure.colorbar(heatMap)
+        self.powerGraph.figure.tight_layout()
         # call the update event This drives both the scanning calls and the graph updating
         # Set up the update function
         self.updateTimer = QTimer()
@@ -114,6 +116,10 @@ class WaterfallWindow(QMainWindow):
             self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
         # This opens the command asynchronously. poll whether the scan is running with p.poll().
         # This returns 0 if the scan is done or None if it is still going.
+        # The call below is the original, and sets all the standard IO to PIPEs. For some reason,
+        #this breaks the FullScan method. It just stops outputting after a few seconds. I left -q in the call
+        #and let it otherwise print to the screen, and it works with no errors. This actually gives more insight
+        #into whats going on anyway.
         #self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, stdout = subprocess.PIPE,\
                                         #stderr = subprocess.PIPE, preexec_fn=os.setsid)
         self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, preexec_fn=os.setsid)
@@ -137,7 +143,7 @@ class WaterfallWindow(QMainWindow):
         if self.dataMatrix.size == 0:
             self.axesRef.imshow(np.array([[0,0]]), aspect='auto')
         else:
-            self.axesRef.imshow(self.dataMatrix, aspect='auto')
+            self.axesRef.imshow(self.dataMatrix, aspect='auto', cmap='inferno', norm=None, vmin=-60, vmax=0)
         self.powerGraph.draw()
 
     def updateFromBin(self):
@@ -196,7 +202,7 @@ class WaterfallWindow(QMainWindow):
         event.accept()
 
     def debug_trace(self):
-      '''Set a tracepoint in the Python debugger that works with Qt'''
+      #Set a tracepoint in the Python debugger that works with Qt
       from PyQt5.QtCore import pyqtRemoveInputHook
       from pdb import set_trace
       pyqtRemoveInputHook()
