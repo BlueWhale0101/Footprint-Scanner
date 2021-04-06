@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QMainWindow, QMessageBox, QPushButton, QScrollArea, 
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
 from ScanView import ScanWindow
+from keyFunctions import *
 from WaterfallView import WaterfallWindow
 import datetime
 import pickle
@@ -155,10 +156,47 @@ class MainWindow(QMainWindow):
         self.msgBox.exec()
 
     def browseHistoryMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
+        '''
+        Open a file browser in the Data folder.
+        If the user selects an image, just open the image.
+        If the user selects a data file, convert it to an image with keyFunctions.dataToWaterfallImage(recordFile=None, **kwargs)
+        '''
+        selectedFileDetails, opts = QFileDialog.getOpenFileName(self)
+        selFilePath, selFileName = os.path.split(selectedFileDetails)
+        selFileBase, selFileExt = os.path.splitext(selFileName)
+        if selFileExt == '.jpg':
+            #This is an image, and hopefully one of the ones that we generated previously.
+            #Try and open it with internal tools.
+            os.system('xdg-open '+selectedFileDetails)
+        elif selFileExt == '.bin':
+            #This is a binary file. We need to ensure that the associated meta data file is available.
+            if not os.path.exists(os.path.join(selFilePath, selFileBase+'.met')):
+                #It doesn't exist. show a popup and break out.
+                warningBox = QMessageBox()
+                warningBox.setText('The selected file could not be loaded. No meta data file was found.')
+                warningBox.setWindowTitle('Load Failed')
+                warningBox.setWindowModality()
+                return
+            #The meta file is present. Do the conversion.
+            dataToWaterfallImage(os.path.join(selFilePath, selFileBase))
+        elif selFileExt == '.met':
+            #This is a metadata file. We need to ensure that the associated binary data file is available.
+            if not os.path.exists(os.path.join(selFilePath, selFileBase+'.bin')):
+                #It doesn't exist. show a popup and break out.
+                warningBox = QMessageBox()
+                warningBox.setText('The selected file could not be loaded. No meta data file was found.')
+                warningBox.setWindowTitle('Load Failed')
+                warningBox.setWindowModality()
+                return
+            #The meta file is present. Do the conversion.
+            dataToWaterfallImage(os.path.join(selFilePath, selFileBase))
 
-        #Keep scanning until the view is closed.
-        pass
+    def debug_trace(self):
+      #Set a tracepoint in the Python debugger that works with Qt
+      from PyQt5.QtCore import pyqtRemoveInputHook
+      from pdb import set_trace
+      pyqtRemoveInputHook()
+      set_trace()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

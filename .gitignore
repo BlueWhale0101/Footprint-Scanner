@@ -33,6 +33,7 @@
 *.csv
 *.bin
 *.met
+*.jpg
 
 # OS generated files #
 ######################

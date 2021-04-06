@@ -14,12 +14,14 @@
     The time step between the scans is not known until the end.
     The data can be read in with struct.unpack('f'*n, file(4*n)) where n is the
     number of bins * the number of hops. This will output a tuple with one line of data, presuming
-    there is data left to read in the file.
+    there is data left to read in the file. We multiply by 4 because each reading is represented by a 4 bit value.
     The number of hops is roundup((hzHigh-HzLow)/actualBandwidth).
     The number of columns is numHops*numBins
     The data is written out to the file in full scans at a time.
     The binary file will have the name 'fileName.mat'. When the scan ends, a
     metadata file named fileName.met will be written out with miscellaneous info.
+
+    Further help: https://github.com/AD-Vega/rtl-power-fftw/blob/master/README.md
 '''
 
 def makeScanCall(fileName="default", hzLow = "89000000", hzHigh = "90000000", numBins = "500", gain = "500",  repeats= "100", exitTimer = "5m"):
@@ -138,10 +140,98 @@ def convertFile(inputFileName, outputFileName=None):
                     outFileWriter.writerow(rowContent)
                     rowCounter += 1
                     dataLine = dataFile.read(binaryLineLength)
+                    if len(dataLine) < binaryLineLength:
+                        #If the scan was disrupted, it will write out the current hop, then end.
+                        #In this case, we need to just write a partial line out
+                        numBins = int(len(dataLine)/4)
         print('Completed exporting '+outputFileName)
 
-def dataToWaterfallImate(recordFile=None, **kwargs):
+def dataToWaterfallImage(recordFile=None, **kwargs):
     #given a record file, convert to an image showing all the data recorded.
-    recordFile = 'Data//060421_132109_VHF_scan.bin' #This is purely for testing
+    import struct
+    import datetime
+    import os
+    import numpy as np
+    #recordFile = 'Data//110321_110627_VHF_scan' #This is purely for testing
     if recordFile == None:
         return 'Failed. No file passed in'
+
+    #open the metadata file and get the key data.
+    #Note that if there isn't a meta data file, you really can't do anything with the data. It's just a stream of bits.
+    metaFileName = recordFile+'.met'
+    dataFileName = recordFile+'.bin'
+    with open(metaFileName, 'r') as f:
+        line = None
+        while line != '':
+            line = f.readline()
+            if line.count('frequency bins') > 0:
+                numBins = int(line.split('#')[0])
+                print(numBins)
+                continue
+            if line.count('startFreq') > 0:
+                hzLow = int(line.split('#')[0])
+                print(hzLow)
+                continue
+            if line.count('endFreq') > 0:
+                hzHigh = int(line.split('#')[0])
+                print(hzHigh)
+                continue
+            if line.count('stepFreq') > 0:
+                hzStep = int(line.split('#')[0])
+                print(hzStep)
+                continue
+            if line.count('avgScanDur') > 0:
+                T = float(line.split('#')[0])
+                stepTime = datetime.timedelta(seconds=T)
+                continue
+            if line.count('firstAcqTimestamp UTC') > 0:
+                t = line.split('#')[0].strip()
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
+                continue
+            if line.count('lastAcqTimestamp UTC') > 0:
+                t = line.split('#')[0].strip()
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
+                continue
+    #Done with the meta data. Now loop through the file and grab a line at a time.
+    #We are just building the array here.
+    #See the comment at the top of the file for all of the clarifying info on how this works.
+    binaryLineLength = numBins*4
+    outputDataMatrix = np.array([])
+    with open(dataFileName, 'rb') as dataFile:
+        #Keep looping till all the data has been read out of the file
+        dataLine = dataFile.read(binaryLineLength)
+        while dataLine != b'':
+            data = struct.unpack('f'*numBins, dataLine)
+            if len(outputDataMatrix) == 0:
+                outputDataMatrix = np.array(list(data))
+            else:
+                outputDataMatrix = np.vstack([outputDataMatrix, np.array(list(data))])
+            dataLine = dataFile.read(binaryLineLength)
+            if len(dataLine) < binaryLineLength:
+                #If the scan was disrupted, it will write out the current hop, then end.
+                #In this case, we need to just dump the last bit of data.
+                break
+
+    #Generate the image. For now, just generate the image and then display it to the screen.
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+    imgSaveName = recordFile+'.jpg'
+    ax = plt.subplot()
+
+    im = ax.imshow(outputDataMatrix, aspect='auto')
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+
+    plt.colorbar(im, cax=cax)
+    plt.tight_layout()
+    fig1 = plt.gcf()
+    fig1.savefig(imgSaveName, format='jpg', dpi=1000)
+    plt.show()
+    '''
+    savefig(fname, dpi=None, facecolor='w', edgecolor='w',
+        orientation='portrait', papertype=None, format=None,
+        transparent=False, bbox_inches=None, pad_inches=0.1,
+        frameon=None, metadata=None)
+    '''
