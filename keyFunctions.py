@@ -229,9 +229,3 @@ def dataToWaterfallImage(recordFile=None, **kwargs):
     fig1 = plt.gcf()
     fig1.savefig(imgSaveName, format='jpg', dpi=1000)
     plt.show()
-    '''
-    savefig(fname, dpi=None, facecolor='w', edgecolor='w',
-        orientation='portrait', papertype=None, format=None,
-        transparent=False, bbox_inches=None, pad_inches=0.1,
-        frameon=None, metadata=None)
-    '''

@@ -175,7 +175,8 @@ class MainWindow(QMainWindow):
                 warningBox = QMessageBox()
                 warningBox.setText('The selected file could not be loaded. No meta data file was found.')
                 warningBox.setWindowTitle('Load Failed')
-                warningBox.setWindowModality()
+                warningBox.setModal(True)
+                warningBox.exec_()
                 return
             #The meta file is present. Do the conversion.
             dataToWaterfallImage(os.path.join(selFilePath, selFileBase))
@@ -186,7 +187,8 @@ class MainWindow(QMainWindow):
                 warningBox = QMessageBox()
                 warningBox.setText('The selected file could not be loaded. No meta data file was found.')
                 warningBox.setWindowTitle('Load Failed')
-                warningBox.setWindowModality()
+                warningBox.setModal(True)
+                warningBox.exec_()
                 return
             #The meta file is present. Do the conversion.
             dataToWaterfallImage(os.path.join(selFilePath, selFileBase))
