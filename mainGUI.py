@@ -7,10 +7,11 @@ Dev Notes:
     2/14/2021: Initial GUI build. Script to call scan is rtl_power_script. Range of scanner 24 – 1766 MHz
 """
 import sys, os.path
-from PyQt5.QtWidgets import QMainWindow, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QDialog, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
 from ScanView import ScanWindow
+from gpsHUDView import gpsHUDView
 from keyFunctions import *
 from WaterfallView import WaterfallWindow
 import datetime
@@ -78,6 +79,13 @@ class MainWindow(QMainWindow):
         self.Full_Button.setStyleSheet(ButtonStyleSheet)
         MainLayout.addWidget(self.Full_Button)
 
+        #GPS Button setup
+        self.GPS_Button = QPushButton('GPS Scan')
+        self.GPS_Button.clicked.connect(self.GPSScanMethod)
+        self.GPS_Button.setFixedHeight(ButtonHeight)
+        self.GPS_Button.setStyleSheet(ButtonStyleSheet)
+        MainLayout.addWidget(self.GPS_Button)
+
         #Calibrate Button setup
         self.Calibrate_Button = QPushButton('Calibrate')
         self.Calibrate_Button.clicked.connect(self.calibrateMethod)
@@ -99,30 +107,55 @@ class MainWindow(QMainWindow):
         self.showMaximized()
 
     def UHFScanMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
+        #Perform a scan across the tactical UHF spectrum
         #need keys fileName, hzLow, hzHigh, numBins, gain, repeats, exitTimer
-        scanDict = {'title':'UHF Scan', 'hzLow':'225000000', 'hzHigh':'400000000', 'gain': '500', 'numBins':'140', 'repeats':'10', 'exitTimer':'10m'}
+        scanDict = {'title':'UHF Scan', 'hzLow':'225000000', 'hzHigh':'400000000', 'gain': '500', 'numBins':'140', 'repeats':'10', 'exitTimer':'3m'}
         self.ScanWindow = WaterfallWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
         self.ScanWindow.show()
 
     def VHFScanMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
+        #Perform a scan across the tactical VHF spectrum
         #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        scanDict = {'title':'VHF Scan', 'hzLow':'30000000', 'hzHigh':'50000000', 'numBins':'140', 'gain': '500', 'repeats':'10', 'exitTimer':'10m'}
+        scanDict = {'title':'VHF Scan', 'hzLow':'30000000', 'hzHigh':'50000000', 'numBins':'140', 'gain': '500', 'repeats':'10', 'exitTimer':'1m'}
         self.ScanWindow = WaterfallWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
         self.ScanWindow.show()
 
 
     def FullScanMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
+        #Perform a scan across the spectrum available to the dongle
         #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-
         scanDict = {'title':'Full Scan', 'hzLow':'30000000', 'hzHigh':'1700000000', 'numBins':'10', 'gain': '500', 'repeats':'1', 'exitTimer':'10m'}
         self.ScanWindow = WaterfallWindow(scanDict)
         #The scanView is modal, so it will block the mainGUI window until we are done with it.
         self.ScanWindow.show()
+
+    def GPSScanMethod(self):
+        #Determine if the user wants the tactical GPS heads up display or the waterfall scan
+        dialogBox = QDialog()
+        dialogLayout = QVBoxLayout()
+        dialogLayout.addWidget(QLabel('Open GPS Scanner or Heads Up display?'))
+        scannerButton = QPushButton('GPS Scanner')
+        scannerButton.clicked.connect(dialogBox.reject) #sets dialogBox.result() to 0. This is also triggered by clicking cancel
+        dialogLayout.addWidget(scannerButton)
+        hudButton = QPushButton('HUD Display')
+        hudButton.clicked.connect(dialogBox.accept) #sets dialogBox.result() to 1
+        dialogLayout.addWidget(hudButton)
+        dialogBox.setLayout(dialogLayout)
+        dialogBox.exec_()
+        if dialogBox.result():
+            #HUD Display was selected
+            print('Selected for HUD Display!')
+            self.gpsHUDView = gpsHUDView()
+            self.gpsHUDView.show()
+        else:
+            #Open a new window with immediate tactical info (Relative power level)
+            #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+            scanDict = {'title':'GPS Scan', 'hzLow':'1227590000', 'hzHigh':'1227610000', 'numBins':'250', 'gain': '500', 'repeats':'10', 'exitTimer':'1m'}
+            self.ScanWindow = WaterfallWindow(scanDict)
+            #The scanView is modal, so it will block the mainGUI window until we are done with it.
+            self.ScanWindow.show()
 
     def calibrateMethod(self):
         '''
@@ -193,15 +226,17 @@ class MainWindow(QMainWindow):
             #The meta file is present. Do the conversion.
             dataToWaterfallImage(os.path.join(selFilePath, selFileBase))
 
-    def debug_trace(self):
-      #Set a tracepoint in the Python debugger that works with Qt
-      from PyQt5.QtCore import pyqtRemoveInputHook
-      from pdb import set_trace
-      pyqtRemoveInputHook()
-      set_trace()
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     mainWindow = MainWindow()
     #Start the application
     sys.exit(app.exec_())
+
+'''
+##############################################
+from PyQt5.QtCore import pyqtRemoveInputHook
+from pdb import set_trace
+pyqtRemoveInputHook()
+set_trace()
+##############################################
+'''

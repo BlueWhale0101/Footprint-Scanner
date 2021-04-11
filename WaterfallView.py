@@ -1,3 +1,11 @@
+'''
+WaterfallView generates a window with a matplotlib imshow view showing a waterfall graph of the slice of the spectrum
+requested. It takes a dictionary argument with the request for the spectrum to be analyzed. It depends on various
+functions in keyFunctions.py and for the C++ drivers to all be setup correctly. It calls the drivers which collect
+data from the sensors, then reads data in from the binary file as it is written. The waterfall view is updated at a
+rate determined by the type of scan called for.
+
+'''
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from keyFunctions import *
@@ -45,16 +53,28 @@ class WaterfallWindow(QMainWindow):
         if self.configDict['title'] == 'UHF Scan':
             self.scanTypeBaseline = 'UHFBaseline'
             self.scanType = 'UHF'
+            self.vmin = -60
+            self.vmax = 0
             intTime = 500 #the interval time is adjusted depending on the type of scan
         elif self.configDict['title'] == 'VHF Scan':
             self.scanTypeBaseline = 'VHFBaseline'
             self.scanType = 'VHF'
+            self.vmin = -60
+            self.vmax = 0
             intTime = 100 #the interval time is adjusted depending on the type of scan
         elif self.configDict['title'] == 'Full Scan':
             # For full scans, use the UHF baseline since it's more relevant.
             self.scanTypeBaseline = 'UHFBaseline'
             self.scanType = 'Full'
-            intTime = 1000 #the interval time is adjusted depending on the type of scan
+            self.vmin = -60
+            self.vmax = 0
+        elif self.configDict['title'] == 'GPS Scan':
+            # For full scans, use the UHF baseline since it's more relevant.
+            self.scanTypeBaseline = 'UHFBaseline'
+            self.scanType = 'GPS'
+            self.vmin = -75
+            self.vmax = -55
+            intTime = 100 #the interval time is adjusted depending on the type of scan
         else:
             # Something is wrong, no baseline is passed in.
             from warnings import warn
@@ -72,8 +92,7 @@ class WaterfallWindow(QMainWindow):
         # Show the scan Data
         self.powerGraph = MplCanvas(self)
         self.axesRef = self.powerGraph.figure.axes[0]
-        heatMap = self.axesRef.imshow(np.array([[0, 0]]), cmap='inferno', aspect='auto', norm=None, vmin=-60, vmax=0)
-        #self.debug_trace()
+        heatMap = self.axesRef.imshow(np.array([[0, 0]]), cmap='inferno', aspect='auto', norm=None, vmin=self.vmin, vmax=self.vmax)
         self.powerGraph.figure.colorbar(heatMap)
         self.powerGraph.figure.tight_layout()
         # call the update event This drives both the scanning calls and the graph updating
@@ -114,6 +133,9 @@ class WaterfallWindow(QMainWindow):
             numBins = self.configDict['numBins'], gain = self.configDict['gain'],  repeats= self.configDict['repeats'], exitTimer = self.configDict['exitTimer'])
         if self.actualBandwidth == None:
             self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
+        #Before starting the scan, write out a meta data file so that even if we terminate the scan early
+        #the data can still be understood.
+        generateMetaDataFile(self.currentCommand, self.actualBandwidth)
         # This opens the command asynchronously. poll whether the scan is running with p.poll().
         # This returns 0 if the scan is done or None if it is still going.
         # The call below is the original, and sets all the standard IO to PIPEs. For some reason,
@@ -131,7 +153,7 @@ class WaterfallWindow(QMainWindow):
 
     def updateMethod(self):
         #check if there is a process
-        if hasattr(self, 'currentScanCommandProcess') is True:
+        if hasattr(self, 'currentScanCommandProcess'):
             #There is a process
             if self.currentScanCommandProcess.poll() == 0:
                 #there is a process, but it has stopped
@@ -143,7 +165,7 @@ class WaterfallWindow(QMainWindow):
         if self.dataMatrix.size == 0:
             self.axesRef.imshow(np.array([[0,0]]), aspect='auto')
         else:
-            self.axesRef.imshow(self.dataMatrix, aspect='auto', cmap='inferno', norm=None, vmin=-60, vmax=0)
+            self.axesRef.imshow(self.dataMatrix, aspect='auto', cmap='inferno', norm=None, vmin=self.vmin, vmax=self.vmax)
         self.powerGraph.draw()
 
     def updateFromBin(self):
@@ -180,7 +202,7 @@ class WaterfallWindow(QMainWindow):
         newLineBinary = allNewDataStream.read(self.binaryLineLength)
         #from this block of data, unpack one row at a time and add them to the matrix
         while newLineBinary != b'':
-            newLine = struct.unpack('f'*int(self.binaryLineLength/4), newLineBinary)
+            newLine = struct.unpack('f'*int(self.binaryLineLength/4), newLineBinary) # Any injects to simulate attack need to happen here
             #Update the data matrix
             if self.dataMatrix.size == 0:
                 self.dataMatrix = np.array([list(newLine)])
@@ -201,9 +223,11 @@ class WaterfallWindow(QMainWindow):
         self.currentScanCommandProcess.wait(10)
         event.accept()
 
-    def debug_trace(self):
-      #Set a tracepoint in the Python debugger that works with Qt
-      from PyQt5.QtCore import pyqtRemoveInputHook
-      from pdb import set_trace
-      pyqtRemoveInputHook()
-      set_trace()
+
+'''
+    #Set a tracepoint in the Python debugger that works with Qt
+    from PyQt5.QtCore import pyqtRemoveInputHook
+    from pdb import set_trace
+    pyqtRemoveInputHook()
+    set_trace()
+'''
