@@ -1,110 +1,184 @@
 import os
-#import schedule
-import time
-from datetime import datetime, timedelta, date
-import numpy as np
+import datetime
 import subprocess
-
-#rtl_power -f 674.230M:674.233M:1 -g 50 -i 1 -e 1h radar.csv
+import time
+import numpy as np
+from keyFunctions import *
 '''
-Usage example:
-python3 create_baselines.py will print out the create_baselines
-UHFBaseline = create_baselines.makeUhfBaseline() will return the vector representing UHF power baseline
-VHFBaseline = create_baselines.makeVhfBaseline() will return the vector representing VHF power baseline
+create_baselines has the functions used to perform a short scan in each spectra performing the following steps:
+1. Scan and store ~5 lines of data
+2. Take the last line as the 'sample data' row
+3. Ensure this line is well correlated to the other lines. Correlate each line to each other line and make sure
+	the value spread is reasonable tight. This means something different for each spectrum because the data
+	sizes are different.
+4. Save this row as the calibration data into a binary file with extension .cal.
 '''
 
-def makeCommand(fileName="", hzLow = "89M", hzHigh = "90M", binSize = "5k", gain = "50", interval = "10", exitTimer = "1M"):
-	answer = "rtl_power -f "
-	fileName = fileName
-	hzLow = hzLow
-	hzHigh = hzHigh
-	binSize = binSize
-	gain = gain
-	interval = interval
-	exitTimer = exitTimer
-	answer += hzLow + ":" + hzHigh + ":" + binSize + " -g " + gain + " -i " + interval + " -e " + exitTimer + " " + fileName
-	return answer
+def calibrate_L1():
+	'''
+	For a clean scan, no activity, using this equation:
+	np.correlate(dataRow, np.random.random(250)*2-X)
+	This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
+	#Correlation Table#
+	 X		score
+	self	935000
+	-60		897000
+	-50		745000
+	-40		593000
+	-30		441000
+	-20		290000
+	-10		137000
+	0		-15169
+	'''
+	print('Calibrate L1')
+	scanComplete = False
+	#Make the scan call
+	scanDict = {'title':'GPS Scan', 'hzLow':'1575400000', 'hzHigh':'1575440000', 'numBins':'250', 'gain': '500', 'repeats':'10', 'exitTimer':'10s'}
+	while not scanComplete:
+		dataFileName = performScanMethod(scanDict, 'L1')
+		data = fileToMatrix(dataFileName)
+		#The last row is sometimes partial, so take the second to last as our sample row
+		calRow = data[-2,:]
+		#Ensure this row is well correlated with the first 10 rows of data. This is an indication that the
+		#row contains data 'typical'
+		for index in range(9):
+			score = np.correlate(calRow, data[index, :])
+			if score < 900000:
+				#This is a poorly correlated row. try try again....
+				scanComplete = False
+				break
+			else:
+				scanComplete = True
 
-def makeNumBins(hzLow, hzHigh, binSize):
-	hzHigh = float(hzHigh[:-1])
-	hzLow = float(hzLow[:-1])
-	binSizeStr = binSize
-	if binSizeStr[-1] =='K':
-		binSize = float(binSizeStr[:-1])/1000
-	else:
-		binSize = float(binSize[:-1])
-	numBins = (hzHigh - hzLow)/binSize
-	if numBins % 1 > 0:
-		numBins = int(numBins) + 1
-	numBins = int(numBins)
-	return numBins
+	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_L1_cal'#The file will be saved as Date_band_cal.npy
+	np.save(fileName, calRow)
+	return fileName + '.npy'
 
-def makeUhfBaseline():
-	fileName = "Data/uhfBaselineInput.csv"
-	hzLow = "300M"
-	hzHigh = "1766M"
-	binSize = "1M"
-	# numBins = makeNumBins(hzLow, hzHigh, binSize)
-	exitTimer = "1M"
-	command = makeCommand(fileName=fileName, hzLow=hzLow, hzHigh=hzHigh, binSize=binSize, exitTimer=exitTimer)
-	commandCall = subprocess.Popen(command, shell=True)
-	commandCall.wait()
-	text = np.genfromtxt(fileName, delimiter=",", dtype=None)
-	csv = np.genfromtxt(fileName, delimiter=",")
-	csv = np.array(csv)
-	bucketReadings = csv[:,6:-1]
+def calibrate_L2():
+		'''
+		For a clean scan, no activity, using this equation:
+		np.correlate(dataRow, np.random.random(250)*2-X)
+		This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
+		#Correlation Table#
+		 X		score
+		self	935000
+		-60		897000
+		-50		745000
+		-40		593000
+		-30		441000
+		-20		290000
+		-10		137000
+		0		-15169
+		'''
+	scanComplete = False
+	#Make the scan call
+	scanDict = {'title':'GPS Scan', 'hzLow':'1227580000', 'hzHigh':'1227620000', 'numBins':'250', 'gain': '500', 'repeats':'10', 'exitTimer':'10s'}
+	while not scanComplete:
+		dataFileName = performScanMethod(scanDict, 'L2')
+		data = fileToMatrix(dataFileName)
+		#The last row is sometimes partial, so take the second to last as our sample row
+		calRow = data[-2,:]
+		#Ensure this row is well correlated with the first 10 rows of data. This is an indication that the
+		#row contains data 'typical'
+		for index in range(9):
+			score = np.correlate(calRow, data[index, :])
+			if score < 900000:
+				#This is a poorly correlated row. try try again....
+				scanComplete = False
+				break
+			else:
+				scanComplete = True
 
-	identifier = text[0][1]
-	numRows = 0
-	for i in range(len(text)):
-		if text[i][1] == identifier:
-			numRows+=1
-		else:
-			break
-	print(numRows)
-	numBins = numRows * len(bucketReadings[0])
-	print(numBins)
+	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_L2_cal'#The file will be saved as Date_band_cal.npy
+	np.save(fileName, calRow)
+	return fileName + '.npy'
 
-	baselineData = np.reshape(bucketReadings, (-1,numBins))
-	medianData = np.median(baselineData, axis = 0)
+def calibrate_VHF():
+		'''
+		For a clean scan, no activity, using this equation:
+		np.correlate(dataRow, np.random.random(250)*2-X)
+		This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
+		#Correlation Table#
+		 X		score
+		self	935000
+		-60		897000
+		-50		745000
+		-40		593000
+		-30		441000
+		-20		290000
+		-10		137000
+		0		-15169
+		'''
+	print('Calibrate VHF')
+	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_VHF_cal'
+	return fileName
 
-	return medianData
+def calibrate_UHF():
+		'''
+		For a clean scan, no activity, using this equation:
+		np.correlate(dataRow, np.random.random(250)*2-X)
+		This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
+		#Correlation Table#
+		 X		score
+		self	935000
+		-60		897000
+		-50		745000
+		-40		593000
+		-30		441000
+		-20		290000
+		-10		137000
+		0		-15169
+		'''
+	print('Calibrate UHF')
+	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_UHF_cal'
+	return fileName
 
+def calibrate_FullSpectrum():
+		'''
+		For a clean scan, no activity, using this equation:
+		np.correlate(dataRow, np.random.random(250)*2-X)
+		This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
+		#Correlation Table#
+		 X		score
+		self	935000
+		-60		897000
+		-50		745000
+		-40		593000
+		-30		441000
+		-20		290000
+		-10		137000
+		0		-15169
+		'''
+	print('Calibrate Full Spectrum')
+	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_Full_Spectrum_cal'
+	return fileName
 
-def makeVhfBaseline():
-	fileName = "Data/vhfBaselineInput.csv"
-	hzLow = "30M"
-	hzHigh = "300M"
-	binSize = "200K"
-	exitTimer = "1M"
-	command = makeCommand(fileName=fileName, hzLow=hzLow, hzHigh=hzHigh, binSize=binSize, exitTimer=exitTimer)
-	commandCall = subprocess.Popen(command, shell=True)
-	commandCall.wait()
-	text = np.genfromtxt(fileName, delimiter=",", dtype=None)
-	csv = np.genfromtxt(fileName, delimiter=",")
-	csv = np.array(csv)
-	bucketReadings = csv[:,6:-1]
+def performScanMethod(configDict, scanType ):
+	#Perform the scan from the configDict, then return the filename
+	# Build the Command
+	# configDict has keys title, minFreq, maxFreq, binSize, interval, exitTimer
+	dataFileName = "Data/" +\
+		datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + scanType + '_scan'
+	print('Scan saving to '+dataFileName)
+	currentCommand = makeScanCall(fileName=dataFileName, hzLow = configDict['hzLow'], hzHigh = configDict['hzHigh'], \
+		numBins = configDict['numBins'], gain = configDict['gain'],  repeats= configDict['repeats'], exitTimer = configDict['exitTimer'])
+	binaryLineLength, actualBandwidth = calcLineLength(currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
 
-	identifier = text[0][1]
-	numRows = 0
-	for i in range(len(text)):
-		if text[i][1] == identifier:
-			numRows+=1
-		else:
-			break
-	print(numRows)
-	numBins = numRows * len(bucketReadings[0])
-	print(numBins)
+	# This opens the command asynchronously. poll whether the scan is running with p.poll().
+	# This returns 0 if the scan is done or None if it is still going.
+	currentScanCommandProcess = subprocess.Popen(currentCommand, shell=True, preexec_fn=os.setsid)
+	print('Running command '+currentCommand)
 
-	baselineData = np.reshape(bucketReadings, (-1,numBins))
-	medianData = np.median(baselineData, axis = 0)
-	return medianData
+	while currentScanCommandProcess.poll() != 0:
+		#wait for the scan to finish
+		time.sleep(1)
+	return dataFileName
 
-if __name__ == '__main__':
-	UHFbaseline = makeUhfBaseline()
-	print('UHF Baseline Power Readings:')
-	print(UHFbaseline)
-
-	print('VHF Baseline Power Readings:')
-	VHFbaseline = makeVhfBaseline()
-	print(VHFbaseline)
+'''
+##############################################
+from PyQt5.QtCore import pyqtRemoveInputHook
+from pdb import set_trace
+pyqtRemoveInputHook()
+set_trace()
+##############################################
+'''

@@ -214,6 +214,71 @@ def convertFile(inputFileName, outputFileName=None):
                         numBins = int(len(dataLine)/4)
         print('Completed exporting '+outputFileName)
 
+def fileToMatrix(inputFileName):
+    import struct
+    import datetime
+    import os
+    import numpy as np
+
+    #Import the binary file and return a numpy array with the values
+    outputDataMatrix = np.array([])
+    #open the metadata file and get the key data.
+    metaFileName = inputFileName+'.met'
+    dataFileName = inputFileName+'.bin'
+    with open(metaFileName, 'r') as f:
+        line = None
+        while line != '':
+            line = f.readline()
+            if line.count('frequency bins') > 0:
+                numBins = int(line.split('#')[0])
+                print(numBins)
+                continue
+            if line.count('startFreq') > 0:
+                hzLow = int(line.split('#')[0])
+                print(hzLow)
+                continue
+            if line.count('endFreq') > 0:
+                hzHigh = int(line.split('#')[0])
+                print(hzHigh)
+                continue
+            if line.count('stepFreq') > 0:
+                hzStep = int(line.split('#')[0])
+                print(hzStep)
+                continue
+            if line.count('avgScanDur') > 0:
+                T = float(line.split('#')[0])
+                stepTime = datetime.timedelta(seconds=T)
+                continue
+            if line.count('firstAcqTimestamp UTC') > 0:
+                t = line.split('#')[0].strip()
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
+                continue
+            if line.count('lastAcqTimestamp UTC') > 0:
+                t = line.split('#')[0].strip()
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
+                continue
+        #Now parse and write out data
+        binaryLineLength = numBins*4
+        with open(inputFileName+'.bin', 'rb') as dataFile:
+            dataLine = dataFile.read(binaryLineLength)
+            from PyQt5.QtCore import pyqtRemoveInputHook
+            from pdb import set_trace
+            pyqtRemoveInputHook()
+            set_trace()
+            while dataLine != b'':
+                data = struct.unpack('f'*numBins, dataLine)
+                rowContent = np.array(list(data))
+                if outputDataMatrix.size == 0:
+                    outputDataMatrix = rowContent
+                else:
+                    outputDataMatrix = np.vstack([rowContent, outputDataMatrix])
+                dataLine = dataFile.read(binaryLineLength)
+                if len(dataLine) < binaryLineLength:
+                    #If the scan was disrupted, it will write out the current hop, then end.
+                    #In this case, we need to just write a partial line out
+                    numBins = int(len(dataLine)/4)
+        return outputDataMatrix
+
 def dataToWaterfallImage(recordFile=None, **kwargs):
     #given a record file, convert to an image showing all the data recorded.
     import struct

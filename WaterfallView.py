@@ -129,6 +129,7 @@ class WaterfallWindow(QMainWindow):
         # configDict has keys title, minFreq, maxFreq, binSize, interval, exitTimer
         self.dataFileName = "Data/" +\
             datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + self.scanType + '_scan'
+        print('Scan saving to '+self.dataFileName)
         self.currentCommand = makeScanCall(fileName=self.dataFileName, hzLow = self.configDict['hzLow'], hzHigh = self.configDict['hzHigh'], \
             numBins = self.configDict['numBins'], gain = self.configDict['gain'],  repeats= self.configDict['repeats'], exitTimer = self.configDict['exitTimer'])
         if self.actualBandwidth == None:
