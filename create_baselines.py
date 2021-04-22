@@ -15,26 +15,11 @@ create_baselines has the functions used to perform a short scan in each spectra 
 '''
 
 def calibrate_L1():
-	'''
-	For a clean scan, no activity, using this equation:
-	np.correlate(dataRow, np.random.random(250)*2-X)
-	This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
-	#Correlation Table#
-	 X		score
-	self	935000
-	-60		897000
-	-50		745000
-	-40		593000
-	-30		441000
-	-20		290000
-	-10		137000
-	0		-15169
-	'''
-	print('Calibrate L1')
 	scanComplete = False
 	#Make the scan call
 	scanDict = {'title':'GPS Scan', 'hzLow':'1575400000', 'hzHigh':'1575440000', 'numBins':'250', 'gain': '500', 'repeats':'10', 'exitTimer':'10s'}
 	while not scanComplete:
+		print('scanning L1')
 		dataFileName = performScanMethod(scanDict, 'L1')
 		data = fileToMatrix(dataFileName)
 		#The last row is sometimes partial, so take the second to last as our sample row
@@ -42,10 +27,15 @@ def calibrate_L1():
 		#Ensure this row is well correlated with the first 10 rows of data. This is an indication that the
 		#row contains data 'typical'
 		for index in range(9):
-			score = np.correlate(calRow, data[index, :])
-			if score < 900000:
+			score = np.corrcoef(calRow, data[index, :])
+			if score[0,1] < .85:
 				#This is a poorly correlated row. try try again....
 				scanComplete = False
+				print('Bad scan, retrying....')
+				from PyQt5.QtCore import pyqtRemoveInputHook
+				from pdb import set_trace
+				pyqtRemoveInputHook()
+				set_trace()
 				break
 			else:
 				scanComplete = True
@@ -55,25 +45,11 @@ def calibrate_L1():
 	return fileName + '.npy'
 
 def calibrate_L2():
-		'''
-		For a clean scan, no activity, using this equation:
-		np.correlate(dataRow, np.random.random(250)*2-X)
-		This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
-		#Correlation Table#
-		 X		score
-		self	935000
-		-60		897000
-		-50		745000
-		-40		593000
-		-30		441000
-		-20		290000
-		-10		137000
-		0		-15169
-		'''
 	scanComplete = False
 	#Make the scan call
 	scanDict = {'title':'GPS Scan', 'hzLow':'1227580000', 'hzHigh':'1227620000', 'numBins':'250', 'gain': '500', 'repeats':'10', 'exitTimer':'10s'}
 	while not scanComplete:
+		print('Scannning L2')
 		dataFileName = performScanMethod(scanDict, 'L2')
 		data = fileToMatrix(dataFileName)
 		#The last row is sometimes partial, so take the second to last as our sample row
@@ -81,10 +57,11 @@ def calibrate_L2():
 		#Ensure this row is well correlated with the first 10 rows of data. This is an indication that the
 		#row contains data 'typical'
 		for index in range(9):
-			score = np.correlate(calRow, data[index, :])
-			if score < 900000:
+			score = np.corrcoef(calRow, data[index, :])
+			if score[0,1] < .85:
 				#This is a poorly correlated row. try try again....
 				scanComplete = False
+				print('Bad scan, retrying....')
 				break
 			else:
 				scanComplete = True
@@ -94,64 +71,82 @@ def calibrate_L2():
 	return fileName + '.npy'
 
 def calibrate_VHF():
-		'''
-		For a clean scan, no activity, using this equation:
-		np.correlate(dataRow, np.random.random(250)*2-X)
-		This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
-		#Correlation Table#
-		 X		score
-		self	935000
-		-60		897000
-		-50		745000
-		-40		593000
-		-30		441000
-		-20		290000
-		-10		137000
-		0		-15169
-		'''
-	print('Calibrate VHF')
-	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_VHF_cal'
-	return fileName
+	scanComplete = False
+	#Make the scan call
+	scanDict = {'title':'VHF Scan', 'hzLow':'30000000', 'hzHigh':'50000000', 'numBins':'140', 'gain': '500', 'repeats':'10', 'exitTimer':'30s'}
+	while not scanComplete:
+		print('Scanning VHF')
+		dataFileName = performScanMethod(scanDict, 'VHF')
+		data = fileToMatrix(dataFileName)
+		#The last row is sometimes partial, so take the second to last as our sample row
+		calRow = data[-2,:]
+		#Ensure this row is well correlated with the first 10 rows of data. This is an indication that the
+		#row contains data 'typical'
+		for index in range(9):
+			score = np.corrcoef(calRow, data[index, :])
+			if score[0,1] < .85:
+				print('Bad scan, retrying....')
+				#This is a poorly correlated row. try try again....
+				scanComplete = False
+				break
+			else:
+				scanComplete = True
+
+	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_VHF_cal'#The file will be saved as Date_band_cal.npy
+	np.save(fileName, calRow)
+	return fileName + '.npy'
 
 def calibrate_UHF():
-		'''
-		For a clean scan, no activity, using this equation:
-		np.correlate(dataRow, np.random.random(250)*2-X)
-		This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
-		#Correlation Table#
-		 X		score
-		self	935000
-		-60		897000
-		-50		745000
-		-40		593000
-		-30		441000
-		-20		290000
-		-10		137000
-		0		-15169
-		'''
-	print('Calibrate UHF')
-	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_UHF_cal'
-	return fileName
+	scanComplete = False
+	#Make the scan call
+	scanDict = {'title':'UHF Scan', 'hzLow':'225000000', 'hzHigh':'400000000', 'gain': '500', 'numBins':'140', 'repeats':'10', 'exitTimer':'30s'}
+	while not scanComplete:
+		print('Scannng UHF')
+		dataFileName = performScanMethod(scanDict, 'UHF')
+		data = fileToMatrix(dataFileName)
+		#The last row is sometimes partial, so take the second to last as our sample row
+		calRow = data[-2,:]
+		#Ensure this row is well correlated with the first 10 rows of data. This is an indication that the
+		#row contains data 'typical'
+		for index in range(3):
+			score = np.corrcoef(calRow, data[index, :])
+			if score[0,1] < .85:
+				print('Bad scan, retrying....')
+				#This is a poorly correlated row. try try again....
+				scanComplete = False
+				break
+			else:
+				scanComplete = True
+
+	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_UHF_cal'#The file will be saved as Date_band_cal.npy
+	np.save(fileName, calRow)
+	return fileName + '.npy'
 
 def calibrate_FullSpectrum():
-		'''
-		For a clean scan, no activity, using this equation:
-		np.correlate(dataRow, np.random.random(250)*2-X)
-		This sets the comparison to data which is approximately X randomly varying by about 2, which is normal behavior
-		#Correlation Table#
-		 X		score
-		self	935000
-		-60		897000
-		-50		745000
-		-40		593000
-		-30		441000
-		-20		290000
-		-10		137000
-		0		-15169
-		'''
-	print('Calibrate Full Spectrum')
-	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_Full_Spectrum_cal'
-	return fileName
+	scanComplete = False
+	#Make the scan call
+	scanDict = {'title':'Full Scan', 'hzLow':'30000000', 'hzHigh':'1700000000', 'numBins':'10', 'gain': '500', 'repeats':'1', 'exitTimer':'3m'}
+	while not scanComplete:
+		print('Scanning Full Spectrum')
+		dataFileName = performScanMethod(scanDict, 'FullScan')
+		data = fileToMatrix(dataFileName)
+		#The last row is sometimes partial, so take the second to last as our sample row
+		calRow = data[-2,:]
+		#Ensure this row is well correlated with the first 10 rows of data. This is an indication that the
+		#row contains data 'typical'
+		for index in range(3):
+			score = np.corrcoef(calRow, data[index, :])
+			if score[0,1] < .85:
+				#This is a poorly correlated row. try try again....
+				print('Bad scan, retrying....')
+				scanComplete = False
+				break
+			else:
+				scanComplete = True
+
+	fileName = datetime.datetime.now().strftime('%Y%m%d')+'_Full_Spectrum_cal'#The file will be saved as Date_band_cal.npy
+	np.save(fileName, calRow)
+	return fileName + '.npy'
 
 def performScanMethod(configDict, scanType ):
 	#Perform the scan from the configDict, then return the filename

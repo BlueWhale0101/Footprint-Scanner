@@ -238,12 +238,16 @@ class gpsHUDView(QMainWindow):
     def closeEvent(self, event):
         # Make sure we are gracefully ending the scan and not just leaving the process running in the background.
         # This would probably cause problems if the user then immediately tried to start another scan.
-        print("User has closed the window")
-        self.dataFileStream.close()
-        self.updateTimer.stop()
-        os.killpg(os.getpgid(self.currentScanCommandProcess.pid), signal.SIGTERM)
-        self.currentScanCommandProcess.wait(10)
-        event.accept()
+        try:
+            print("User has closed the window")
+            self.dataFileStream.close()
+            self.updateTimer.stop()
+            os.killpg(self.currentScanCommandProcess.pid, signal.SIGINT)
+            self.currentScanCommandProcess.wait(10)
+            event.accept()
+        except ProcessLookupError as error:
+            print(error)
+            print('Already closed the window. Be patient.')
 
 
 class msgLabel(QLabel):

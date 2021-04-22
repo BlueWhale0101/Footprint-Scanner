@@ -127,16 +127,18 @@ class WaterfallWindow(QMainWindow):
     def initScanMethod(self):
         # we have not started the first scan. Build the Command
         # configDict has keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        self.dataFileName = "Data/" +\
+        self.dataFileName = 'Data/' + \
             datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + self.scanType + '_scan'
         print('Scan saving to '+self.dataFileName)
         self.currentCommand = makeScanCall(fileName=self.dataFileName, hzLow = self.configDict['hzLow'], hzHigh = self.configDict['hzHigh'], \
             numBins = self.configDict['numBins'], gain = self.configDict['gain'],  repeats= self.configDict['repeats'], exitTimer = self.configDict['exitTimer'])
+        print('###################')
+        print(self.currentCommand)
+        print('###################')
         if self.actualBandwidth == None:
             self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
         #Before starting the scan, write out a meta data file so that even if we terminate the scan early
         #the data can still be understood.
-        generateMetaDataFile(self.currentCommand, self.actualBandwidth)
         # This opens the command asynchronously. poll whether the scan is running with p.poll().
         # This returns 0 if the scan is done or None if it is still going.
         # The call below is the original, and sets all the standard IO to PIPEs. For some reason,
@@ -217,13 +219,16 @@ class WaterfallWindow(QMainWindow):
     def closeEvent(self, event):
         # Make sure we are gracefully ending the scan and not just leaving the process running in the background.
         # This would probably cause problems if the user then immediately tried to start another scan.
-        print("User has closed the window")
-        self.dataFileStream.close()
-        self.updateTimer.stop()
-        os.killpg(os.getpgid(self.currentScanCommandProcess.pid), signal.SIGTERM)
-        self.currentScanCommandProcess.wait(10)
-        event.accept()
-
+        try:
+            print("User has closed the window")
+            self.dataFileStream.close()
+            self.updateTimer.stop()
+            os.killpg(self.currentScanCommandProcess.pid, signal.SIGINT)
+            self.currentScanCommandProcess.wait(10)
+            event.accept()
+        except ProcessLookupError as error:
+            print(error)
+            print('Already closed the window. Be patient.')
 
 '''
     #Set a tracepoint in the Python debugger that works with Qt
