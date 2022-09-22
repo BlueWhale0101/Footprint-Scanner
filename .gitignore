@@ -31,11 +31,10 @@
 *.sql
 *.sqlite
 *.csv
-*.bin
-*.met
-*.jpg
 *.png
-Archive April 16/*
+*.jpg
+*.met
+*.bin
 
 # OS generated files #
 ######################
