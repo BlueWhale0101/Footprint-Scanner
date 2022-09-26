@@ -14,11 +14,11 @@
     The time step between the scans is not known until the end.
     The data can be read in with struct.unpack('f'*n, file(4*n)) where n is the
     number of bins * the number of hops. This will output a tuple with one line of data, presuming
-    there is data left to read in the file. We multiply by 4 because each reading is represented by a 4 bit value.
+    there is data left to read in the file. We multiply by 4 because each reading is represented by a 4 byte value.
     The number of hops is roundup((hzHigh-HzLow)/actualBandwidth).
     The number of columns is numHops*numBins
     The data is written out to the file in full scans at a time.
-    The binary file will have the name 'fileName.mat'. When the scan ends, a
+    The binary file will have the name 'fileName.bin'. When the scan ends, a
     metadata file named fileName.met will be written out with miscellaneous info.
 
     Further help: https://github.com/AD-Vega/rtl-power-fftw/blob/master/README.md
@@ -53,7 +53,7 @@ def detectBandwidth():
 def calcLineLength(call):
     import math
     BW = detectBandwidth()
-    #calculates the number of bits in a line of data from the matrix binary output file for a given call
+    #calculates the number of bytes in a line of data from the matrix binary output file for a given call
     elements = call.split(' ')
     for index, element in enumerate(elements):
         if element == '-f':
@@ -77,9 +77,9 @@ def calcLineLength(call):
     print('using freq range '+hzLow+ ' to '+hzHigh)
     hzLow = int(hzLow)
     hzHigh = int(hzHigh)
-    #Now that we have the freqs in Hz, calculate the number of bits
+    #Now that we have the freqs in Hz, calculate the number of bytes
     binaryLineLength = int(math.ceil((hzHigh - hzLow)/BW)*4*numBins)
-    print('Number of bits in a row is '+str(binaryLineLength))
+    print('Number of bytes in a row is '+str(binaryLineLength))
     return binaryLineLength, BW
 
 def convertFile(inputFileName, outputFileName=None):
@@ -225,7 +225,7 @@ def dataToWaterfallImage(recordFile=None, **kwargs):
         return 'Failed. No file passed in'
 
     #open the metadata file and get the key data.
-    #Note that if there isn't a meta data file, you really can't do anything with the data. It's just a stream of bits.
+    #Note that if there isn't a meta data file, you really can't do anything with the data. It's just a stream of bytes.
     metaFileName = recordFile+'.met'
     dataFileName = recordFile+'.bin'
     with open(metaFileName, 'r') as f:

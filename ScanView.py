@@ -3,6 +3,8 @@ import os
 import signal
 import pickle
 import io
+import time
+
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
@@ -63,7 +65,7 @@ class ScanWindow(QMainWindow):
         #Init the main graph
         self.avgPower = []
         self.timeData = []
-        
+
         self.binData = np.array()
 
         # Show the scan Data
@@ -111,6 +113,15 @@ class ScanWindow(QMainWindow):
         self.inStream = io.FileIO(self.dataFileName)
 
     def updateMethod(self):
+        #time test
+        #TODO remove this after timing is optimized
+        if 'lastUpdateTime' not in self.keys():
+            self.lastUpdateTime = time.perf_counter()
+        else:
+            newUpdateTime = time.perf_counter()
+            delta = newUpdateTime - self.lastUpdateTime
+            self.lastUpdatetime = newUpdateTime
+            print('delta: {}'.format(delta))
         # Check that the scan is still running. If it has stopped, start a new one
         if self.currentScanCommandCall.poll() == 0:
             # The scan ended. Start a new one.
@@ -129,7 +140,7 @@ class ScanWindow(QMainWindow):
         # Get the numeric data
         dataArray = np.genfromtxt(io.StringIO(
             rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
-       
+
 
         #### determine how to slice the data (can be passed 1+ data "bursts" in dataArray) ######
         bucketReadings = dataArray[:,6:-1] ### slice off headings
@@ -146,16 +157,6 @@ class ScanWindow(QMainWindow):
 
         formattedData = np.reshape(bucketReadings, (-1,numBins))
         #### each row in formattedData is a burst without headings ##############################
-        
-        # for reading in formattedData:
-        #     # np.nan_to_num(x_tt1[:, 1:]) + np.isnan(x_tt1[:, 1:]) * f_mean_Pre85
-        #     reading_noNAN = np.nan_to_num(reading) + np.isnan(reading) * 0
-        #     self.binData = np.append(self.binData, reading_noNAN)
-        # if len(self.binData > 1000):
-        #     self.binData = self.binData[-1000:]
-
-
-
 
         for reading in dataArray:
             if self.configDict['title'] == 'Full Scan':
@@ -172,12 +173,7 @@ class ScanWindow(QMainWindow):
             if len(self.avgPower) > 3:
                 self.avgPower.append(newPower)
                 self.timeData.append(len(self.avgPower))
-                # If there is enough data in the list,
-                # movingAvg = np.average(
-                #     [self.avgPower[-2], self.avgPower[-1], newPower])
-                # self.avgPower.append(movingAvg)
-                # print('New Entry:')
-                # print(movingAvg)
+                # TODO This may be the right place to do some filtering to remove noise without removing signals of interest.
             else:
                 self.avgPower.append(newPower)
                 self.timeData.append(len(self.avgPower))
@@ -209,10 +205,3 @@ class ScanWindow(QMainWindow):
         os.killpg(os.getpgid(self.currentScanCommandCall.pid), signal.SIGTERM)
         self.currentScanCommandCall.wait(10)
         event.accept()
-
-
-
-
-
-
-

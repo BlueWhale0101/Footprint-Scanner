@@ -5,6 +5,8 @@ functions in keyFunctions.py and for the C++ drivers to all be setup correctly. 
 data from the sensors, then reads data in from the binary file as it is written. The waterfall view is updated at a
 rate determined by the type of scan called for.
 
+Update notes 9/25/2022
+SimWaterfallView is a clone of this module.
 '''
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
@@ -68,6 +70,7 @@ class WaterfallWindow(QMainWindow):
             self.scanType = 'Full'
             self.vmin = -60
             self.vmax = 0
+            intTime = 500 #the interval time is adjusted depending on the type of scan
         elif self.configDict['title'] == 'GPS Scan':
             # For full scans, use the UHF baseline since it's more relevant.
             self.scanTypeBaseline = 'UHFBaseline'
@@ -78,7 +81,8 @@ class WaterfallWindow(QMainWindow):
         else:
             # Something is wrong, no baseline is passed in.
             from warnings import warn
-            warn('something went wrong. No baseline is set, WaterfallView is going to crash')
+            warn('something went wrong. No baseline is set, WaterfallView is going to close')
+            return
         # Main Layout creation
         self.CentralWindow = QWidget()
         MainLayout = QVBoxLayout()
@@ -126,6 +130,7 @@ class WaterfallWindow(QMainWindow):
 
     def initScanMethod(self):
         # we have not started the first scan. Build the Command
+        #Return True if the method completed without issues. Return False if there were errors.
         # configDict has keys title, minFreq, maxFreq, binSize, interval, exitTimer
         self.dataFileName = 'Data/' + \
             datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + self.scanType + '_scan'
@@ -135,8 +140,20 @@ class WaterfallWindow(QMainWindow):
         print('###################')
         print(self.currentCommand)
         print('###################')
-        if self.actualBandwidth == None:
-            self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
+        if self.configDict['simMode']:
+            #Run the simulator instead of polling the hardware.
+        elif self.actualBandwidth == None:
+            try:
+                self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
+            except:
+                #The bandwidth detection also serves as a hardware detection test. If this failed, the sdr is probably either not available or not plugged in. Warn the user and return out.
+                warningBox = QMessageBox()
+                warningBox.setText('SDR hardware was not detected.')
+                warningBox.setWindowTitle('Scan Failed')
+                warningBox.setModal(True)
+                warningBox.exec_()
+                self.close()
+                return False
         #Before starting the scan, write out a meta data file so that even if we terminate the scan early
         #the data can still be understood.
         # This opens the command asynchronously. poll whether the scan is running with p.poll().
@@ -153,6 +170,7 @@ class WaterfallWindow(QMainWindow):
         while not os.path.exists(self.dataFileName+'.bin'):
             sleep(.5)
         self.dataFileStream = open(self.dataFileName+'.bin', 'rb')
+        return True
 
     def updateMethod(self):
         #check if there is a process
@@ -160,9 +178,16 @@ class WaterfallWindow(QMainWindow):
             #There is a process
             if self.currentScanCommandProcess.poll() == 0:
                 #there is a process, but it has stopped
-                self.initScanMethod()
+                result = self.initScanMethod()
+                if not result:
+                    self.parent.close()
+                    return
+
         else:#There is no process
-            self.initScanMethod()
+            result = self.initScanMethod()
+            if not result:
+                self.close()
+                return
         #Get the updated data
         self.updateFromBin()
         if self.dataMatrix.size == 0:
@@ -221,15 +246,15 @@ class WaterfallWindow(QMainWindow):
         # This would probably cause problems if the user then immediately tried to start another scan.
         try:
             print("User has closed the window")
-            self.dataFileStream.close()
             self.updateTimer.stop()
+            self.dataFileStream.close()
             os.killpg(self.currentScanCommandProcess.pid, signal.SIGINT)
             self.currentScanCommandProcess.wait(10)
             event.accept()
-        except ProcessLookupError as error:
-            print(error)
-            print('Already closed the window. Be patient.')
-
+        except:
+            from warnings import warn
+            warn('Unhandled exception')
+            print('either too many clicks or a hw problem.')
 '''
     #Set a tracepoint in the Python debugger that works with Qt
     from PyQt5.QtCore import pyqtRemoveInputHook
