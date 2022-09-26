@@ -3,6 +3,8 @@ import os
 import signal
 import pickle
 import io
+import time
+
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
@@ -49,9 +51,15 @@ class ScanWindow(QMainWindow):
         self.powerGraph.setBackground((59, 79, 65))
         self.powerGraph.showGrid(x=True, y=True)
         self.avgPower = []
-        pen = pg.mkPen(color=(242, 245, 66))
-        self.data_line = self.powerGraph.plot(self.avgPower, pen=pen)
+        self.timeData = []
 
+        self.binData = np.array()
+
+        # Show the scan Data
+        self.powerGraph = MplCanvas(self, width=5, height=4, dpi=100)
+        self.plotRef = None
+        self.axesRef = self.powerGraph.figure.axes[0]
+        self.axesRef.set_xlim(0, 1000)
         # call the update event This drives both the scanning calls and the graph updating
         # Set up the update function
         self.updateTimer = QTimer()
@@ -92,6 +100,15 @@ class ScanWindow(QMainWindow):
         self.inStream = io.FileIO(self.dataFileName)
 
     def updateMethod(self):
+        #time test
+        #TODO remove this after timing is optimized
+        if 'lastUpdateTime' not in self.keys():
+            self.lastUpdateTime = time.perf_counter()
+        else:
+            newUpdateTime = time.perf_counter()
+            delta = newUpdateTime - self.lastUpdateTime
+            self.lastUpdatetime = newUpdateTime
+            print('delta: {}'.format(delta))
         # Check that the scan is still running. If it has stopped, start a new one
         if self.currentScanCommandCall.poll() == 0:
             # The scan ended. Start a new one.
@@ -109,6 +126,24 @@ class ScanWindow(QMainWindow):
         # Get the numeric data
         dataArray = np.genfromtxt(io.StringIO(
             rawData.decode('utf-8')), delimiter=',', encoding='utf-8')
+
+
+        #### determine how to slice the data (can be passed 1+ data "bursts" in dataArray) ######
+        bucketReadings = dataArray[:,6:-1] ### slice off headings
+        identifier = str(dataArray[0][1]) ### grab timestamp
+        numRows = 0
+        for i in range(len(dataArracleary)):
+            if str(dataArray[i][1]) == identifier: ### compare current timestamp to reference
+                numRows+=1
+            else:
+                break
+        print(numRows)
+        numBins = numRows * len(bucketReadings[0])
+        print(numBins)
+
+        formattedData = np.reshape(bucketReadings, (-1,numBins))
+        #### each row in formattedData is a burst without headings ##############################
+
         for reading in dataArray:
             counter += 1
             print(counter)
@@ -121,10 +156,9 @@ class ScanWindow(QMainWindow):
                 #np.abs(10**dbPower - 10**np.median(self.configData[self.scanTypeBaseline][0])))
             newPower = dbPower
             if len(self.avgPower) > 3:
-                # If there is enough data in the list,
-                movingAvg = np.average(
-                    [self.avgPower[-2], self.avgPower[-1], newPower])
-                self.avgPower.append(movingAvg)
+                self.avgPower.append(newPower)
+                self.timeData.append(len(self.avgPower))
+                # TODO This may be the right place to do some filtering to remove noise without removing signals of interest.
             else:
                 self.avgPower.append(newPower)
         # Don't let the plotter build up more then 300 points.
@@ -149,9 +183,3 @@ class ScanWindow(QMainWindow):
         os.killpg(os.getpgid(self.currentScanCommandCall.pid), signal.SIGTERM)
         self.currentScanCommandCall.wait(10)
         event.accept()
-
-
-# from pdb import set_trace
-# from PyQt5.QtCore import pyqtRemoveInputHook
-# pyqtRemoveInputHook()
-# set_trace()

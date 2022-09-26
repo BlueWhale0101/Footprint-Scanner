@@ -7,7 +7,7 @@ Dev Notes:
     2/14/2021: Initial GUI build. Script to call scan is rtl_power_script. Range of scanner 24 – 1766 MHz
 """
 import sys, os.path
-from PyQt5.QtWidgets import QMainWindow, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox, QCheckBox, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
 from PyQt5.QtCore import Qt, QTimer
 from create_baselines import *
 from ScanView import ScanWindow
@@ -41,6 +41,8 @@ class MainWindow(QMainWindow):
             with open(self.configFile, 'wb') as outFile:
                 pickle.dump(self.configData, outFile, protocol=3) #Use protocol 3 because the PI is on python 3.7
 
+        #General storage space for variables
+        self.configData = {'Sim':False}
         #Main Layout creation
         self.CentralWindow = QWidget()
         MainLayout = QVBoxLayout()
@@ -83,12 +85,25 @@ class MainWindow(QMainWindow):
         self.Calibrate_Button.setStyleSheet(ButtonStyleSheet)
         MainLayout.addWidget(self.Calibrate_Button)
 
+        #Declare  horizontal box for History and sim
+        self.HLayout = QHBoxLayout()
+
         #Browse History Button setup
         self.browseHistory_Button = QPushButton('Browse History')
         self.browseHistory_Button.clicked.connect(self.browseHistoryMethod)
         self.browseHistory_Button.setFixedHeight(ButtonHeight)
         self.browseHistory_Button.setStyleSheet(ButtonStyleSheet)
-        MainLayout.addWidget(self.browseHistory_Button)
+        self.HLayout.addWidget(self.browseHistory_Button)
+
+        #Set Simulator state checkbox
+        self.setSimMode_Checkbox = QCheckBox('Simulation Mode')
+        self.setSimMode_Checkbox.setChecked(False)
+        self.setSimMode_Checkbox.stateChanged.connect(lambda:self.setSimMode(self.setSimMode_Checkbox))
+        self.browseHistory_Button.setFixedHeight(ButtonHeight)
+        self.HLayout.addWidget(self.setSimMode_Checkbox)
+
+        #Add horizontal layout to main layout
+        MainLayout.addLayout(self.HLayout)
 
         #Open the window and display the UI
         self.CentralWindow.setLayout(MainLayout)
@@ -97,29 +112,93 @@ class MainWindow(QMainWindow):
         self.showMaximized()
 
     def UHFScanMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
-        #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        scanDict = {'title':'UHF Scan', 'minFreq':'225M', 'maxFreq':'400M', 'binSize':'25k', 'interval':'1', 'exitTimer':'10m'}
-        self.ScanWindow = ScanWindow(scanDict)
-        #The scanView is modal, so it will block the mainGUI window until we are done with it.
-        self.ScanWindow.show()
+        if not self.configData['Sim']:
+            #Not simulated, use real hardware
+            print('Scanning on HW. IF no SDR is connected this will fail')
+            #Perform a scan across the tactical UHF spectrum
+            #need keys fileName, hzLow, hzHigh, numBins, gain, repeats, exitTimer
+            scanDict = {'title':'UHF Scan', 'hzLow':'225000000', 'hzHigh':'400000000', 'gain': '500', 'numBins':'140', 'repeats':'10', 'exitTimer':'3m', 'simMode':self.configData['Sim']}
+            self.ScanWindow = WaterfallWindow(scanDict)
+            #The scanView is modal, so it will block the mainGUI window until we are done with it.
+            self.ScanWindow.show()
+        else:
+            #Simulated input data. Select a past file to be used for this process
+            '''
+            #This works fine, but I want to hard set the sim file for now.
+            selectedFileDetails, opts = QFileDialog.getOpenFileName(self)
+            selFilePath, selFileName = os.path.split(selectedFileDetails)
+            selFileBase, selFileExt = os.path.splitext(selFileName)
+            '''
+            #TODO model file selection for playback data
+            simDataInputFilePath = os.path.abspath("SimData\\210922_230951_UHF_scan.bin")
+            print('sim not working yet....')
 
     def VHFScanMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
-        #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        scanDict = {'title':'VHF Scan', 'minFreq':'30M', 'maxFreq':'50M', 'binSize':'25k', 'interval':'1', 'exitTimer':'10m'}
-        self.ScanWindow = ScanWindow(scanDict)
-        #The scanView is modal, so it will block the mainGUI window until we are done with it.
-        self.ScanWindow.show()
+        if not self.configData['Sim']:
+            #Not simulated, use real hardware
+            print('Scanning on HW. IF no SDR is connected this will fail')#Perform a scan across the tactical VHF spectrum
+            #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+            scanDict = {'title':'VHF Scan', 'hzLow':'30000000', 'hzHigh':'50000000', 'numBins':'140', 'gain': '500', 'repeats':'10', 'exitTimer':'1m', 'simMode':self.configData['Sim']}
+            self.ScanWindow = WaterfallWindow(scanDict)
+            #The scanView is modal, so it will block the mainGUI window until we are done with it.
+            self.ScanWindow.show()
+        else:
+            #Simulated input data. Select a past file to be used for this process
+            #TODO model file selection for playback data
+            '''
+            #This works fine, but I want to hard set the sim file for now.
+            selectedFileDetails, opts = QFileDialog.getOpenFileName(self)
+            selFilePath, selFileName = os.path.split(selectedFileDetails)
+            selFileBase, selFileExt = os.path.splitext(selFileName)
+            '''
+            simDataInputFilePath = os.path.abspath("SimData\\210922_223435_VHF_scan.bin")
+            print('sim not working yet....')
 
 
     def FullScanMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
-        #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-        scanDict = {'title':'Full Scan', 'minFreq':'30M', 'maxFreq':'1700M', 'binSize':'1M', 'interval':'30', 'exitTimer':'20m'}
-        self.ScanWindow = ScanWindow(scanDict)
-        #The scanView is modal, so it will block the mainGUI window until we are done with it.
-        self.ScanWindow.show()
+        if not self.configData['Sim']:
+            #Not simulated, use real hardware#Perform a scan across the spectrum available to the dongle
+            #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+            scanDict = {'title':'Full Scan', 'hzLow':'30000000', 'hzHigh':'1700000000', 'numBins':'10', 'gain': '500', 'repeats':'1', 'exitTimer':'10m', 'simMode':self.configData['Sim']}
+            self.ScanWindow = WaterfallWindow(scanDict)
+            #The scanView is modal, so it will block the mainGUI window until we are done with it.
+            self.ScanWindow.show()
+        else:
+            #Simulated input data. Select a past file to be used for this process
+            #TODO model file selection for playback data
+            '''
+            #This works fine, but I want to hard set the sim file for now.
+            selectedFileDetails, opts = QFileDialog.getOpenFileName(self)
+            selFilePath, selFileName = os.path.split(selectedFileDetails)
+            selFileBase, selFileExt = os.path.splitext(selFileName)
+            '''
+            simDataInputFilePath = os.path.abspath("SimData\\250922_152601_Full_scan.bin")
+            print('sim not working yet....')
+
+    def GPSScanMethod(self):
+        #Determine if the user wants the tactical GPS heads up display or the waterfall scan
+        dialogBox = QDialog()
+        dialogLayout = QVBoxLayout()
+        dialogLayout.addWidget(QLabel('Open GPS Scanner or Heads Up display?'))
+        scannerButton = QPushButton('GPS Scanner')
+        scannerButton.clicked.connect(dialogBox.reject) #sets dialogBox.result() to 0. This is also triggered by clicking cancel
+        dialogLayout.addWidget(scannerButton)
+        hudButton = QPushButton('HUD Display')
+        hudButton.clicked.connect(dialogBox.accept) #sets dialogBox.result() to 1
+        dialogLayout.addWidget(hudButton)
+        dialogBox.setLayout(dialogLayout)
+        dialogBox.exec_()
+        if dialogBox.result():
+            #HUD Display was selected
+            print('Selected for HUD Display!')
+            self.gpsHUDView = gpsHUDView()
+            self.gpsHUDView.show()
+        else:
+            #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+            scanDict = {'title':'GPS Scan', 'hzLow':'1227590000', 'hzHigh':'1227610000', 'numBins':'250', 'gain': '500', 'repeats':'10', 'exitTimer':'1m', 'simMode':self.configData['Sim']}
+            self.ScanWindow = WaterfallWindow(scanDict)
+            #The scanView is modal, so it will block the mainGUI window until we are done with it.
+            self.ScanWindow.show()
 
     def calibrateMethod(self):
         '''
@@ -153,10 +232,42 @@ class MainWindow(QMainWindow):
         self.msgBox.exec()
 
     def browseHistoryMethod(self):
-        #Open a new window with immediate tactical info (Relative power level)
-
-        #Keep scanning until the view is closed.
-        pass
+        '''
+        Open a file browser in the Data folder.
+        If the user selects an image, just open the image.
+        If the user selects a data file, convert it to an image with keyFunctions.dataToWaterfallImage(recordFile=None, **kwargs)
+        '''
+        selectedFileDetails, opts = QFileDialog.getOpenFileName(self)
+        selFilePath, selFileName = os.path.split(selectedFileDetails)
+        selFileBase, selFileExt = os.path.splitext(selFileName)
+        if selFileExt == '.jpg':
+            #This is an image, and hopefully one of the ones that we generated previously.
+            #Try and open it with internal tools.
+            os.system('xdg-open '+selectedFileDetails)
+        elif selFileExt == '.bin':
+            #This is a binary file. We need to ensure that the associated meta data file is available.
+            if not os.path.exists(os.path.join(selFilePath, selFileBase+'.met')):
+                #It doesn't exist. show a popup and break out.
+                warningBox = QMessageBox()
+                warningBox.setText('The selected file could not be loaded. No meta data file was found.')
+                warningBox.setWindowTitle('Load Failed')
+                warningBox.setModal(True)
+                warningBox.exec_()
+                return
+            #The meta file is present. Do the conversion.
+            dataToWaterfallImage(os.path.join(selFilePath, selFileBase))
+        elif selFileExt == '.met':
+            #This is a metadata file. We need to ensure that the associated binary data file is available.
+            if not os.path.exists(os.path.join(selFilePath, selFileBase+'.bin')):
+                #It doesn't exist. show a popup and break out.
+                warningBox = QMessageBox()
+                warningBox.setText('The selected file could not be loaded. No meta data file was found.')
+                warningBox.setWindowTitle('Load Failed')
+                warningBox.setModal(True)
+                warningBox.exec_()
+                return
+            #The meta file is present. Do the conversion.
+            dataToWaterfallImage(os.path.join(selFilePath, selFileBase))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
