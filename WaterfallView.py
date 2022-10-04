@@ -8,6 +8,9 @@ rate determined by the type of scan called for.
 Update notes 9/25/2022
 SimWaterfallView is a clone of this module.
 '''
+import matplotlib.pylab as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from keyFunctions import *
@@ -24,10 +27,8 @@ import struct
 #Imports for spectrogram
 import matplotlib
 matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
 #import seaborn as sns
-import matplotlib.pylab as plt
+
 
 class MplCanvas(FigureCanvasQTAgg):
     #This is a class for setting up the embedded matplotlib figure
@@ -35,6 +36,7 @@ class MplCanvas(FigureCanvasQTAgg):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
+
 
 class WaterfallWindow(QMainWindow):
 
@@ -49,7 +51,7 @@ class WaterfallWindow(QMainWindow):
             self.configData = pickle.load(inFile)
         # The passed in configDict must have the keys title, minFreq, maxFreq, binSize, interval, exitTimer
         self.configDict = configDict
-        self.actualBandwidth = None #this is set in the initScanMethod
+        self.actualBandwidth = None  # this is set in the initScanMethod
         self.statusBar()
         self.currentScanTime = 0
         if self.configDict['title'] == 'UHF Scan':
@@ -57,31 +59,32 @@ class WaterfallWindow(QMainWindow):
             self.scanType = 'UHF'
             self.vmin = -60
             self.vmax = 0
-            intTime = 500 #the interval time is adjusted depending on the type of scan
+            intTime = 500  # the interval time is adjusted depending on the type of scan
         elif self.configDict['title'] == 'VHF Scan':
             self.scanTypeBaseline = 'VHFBaseline'
             self.scanType = 'VHF'
             self.vmin = -60
             self.vmax = 0
-            intTime = 100 #the interval time is adjusted depending on the type of scan
+            intTime = 100  # the interval time is adjusted depending on the type of scan
         elif self.configDict['title'] == 'Full Scan':
             # For full scans, use the UHF baseline since it's more relevant.
             self.scanTypeBaseline = 'UHFBaseline'
             self.scanType = 'Full'
             self.vmin = -60
             self.vmax = 0
-            intTime = 500 #the interval time is adjusted depending on the type of scan
+            intTime = 500  # the interval time is adjusted depending on the type of scan
         elif self.configDict['title'] == 'GPS Scan':
             # For full scans, use the UHF baseline since it's more relevant.
             self.scanTypeBaseline = 'UHFBaseline'
             self.scanType = 'GPS'
             self.vmin = -75
             self.vmax = -55
-            intTime = 100 #the interval time is adjusted depending on the type of scan
+            intTime = 100  # the interval time is adjusted depending on the type of scan
         else:
             # Something is wrong, no baseline is passed in.
             from warnings import warn
-            warn('something went wrong. No baseline is set, WaterfallView is going to close')
+            warn(
+                'something went wrong. No baseline is set, WaterfallView is going to close')
             return
         # Main Layout creation
         self.CentralWindow = QWidget()
@@ -96,7 +99,8 @@ class WaterfallWindow(QMainWindow):
         # Show the scan Data
         self.powerGraph = MplCanvas(self)
         self.axesRef = self.powerGraph.figure.axes[0]
-        heatMap = self.axesRef.imshow(np.array([[0, 0]]), cmap='inferno', aspect='auto', norm=None, vmin=self.vmin, vmax=self.vmax)
+        heatMap = self.axesRef.imshow(np.array(
+            [[0, 0]]), cmap='inferno', aspect='auto', norm=None, vmin=self.vmin, vmax=self.vmax)
         self.powerGraph.figure.colorbar(heatMap)
         self.powerGraph.figure.tight_layout()
         # call the update event This drives both the scanning calls and the graph updating
@@ -135,16 +139,16 @@ class WaterfallWindow(QMainWindow):
         self.dataFileName = 'Data/' + \
             datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + self.scanType + '_scan'
         print('Scan saving to '+self.dataFileName)
-        self.currentCommand = makeScanCall(fileName=self.dataFileName, hzLow = self.configDict['hzLow'], hzHigh = self.configDict['hzHigh'], \
-            numBins = self.configDict['numBins'], gain = self.configDict['gain'],  repeats= self.configDict['repeats'], exitTimer = self.configDict['exitTimer'])
+        self.currentCommand = makeScanCall(fileName=self.dataFileName, hzLow=self.configDict['hzLow'], hzHigh=self.configDict['hzHigh'],
+                                           numBins=self.configDict['numBins'], gain=self.configDict['gain'],  repeats=self.configDict['repeats'], exitTimer=self.configDict['exitTimer'])
         print('###################')
         print(self.currentCommand)
         print('###################')
-        if self.configDict['simMode']:
-            #Run the simulator instead of polling the hardware.
-        elif self.actualBandwidth == None:
+        if self.actualBandwidth == None:
             try:
-                self.binaryLineLength, self.actualBandwidth = calcLineLength(self.currentCommand) #calculates the number of bits in one row of the output file and detects the bandwidth of this device.
+                # calculates the number of bits in one row of the output file and detects the bandwidth of this device.
+                self.binaryLineLength, self.actualBandwidth = calcLineLength(
+                    self.currentCommand)
             except:
                 #The bandwidth detection also serves as a hardware detection test. If this failed, the sdr is probably either not available or not plugged in. Warn the user and return out.
                 warningBox = QMessageBox()
@@ -163,8 +167,9 @@ class WaterfallWindow(QMainWindow):
         #and let it otherwise print to the screen, and it works with no errors. This actually gives more insight
         #into whats going on anyway.
         #self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, stdout = subprocess.PIPE,\
-                                        #stderr = subprocess.PIPE, preexec_fn=os.setsid)
-        self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, preexec_fn=os.setsid)
+                #stderr = subprocess.PIPE, preexec_fn=os.setsid)
+        self.currentScanCommandProcess = subprocess.Popen(
+            self.currentCommand, shell=True, preexec_fn=os.setsid)
         print('Running command '+self.currentCommand)
         self.currentScanTime = datetime.datetime.now()
         while not os.path.exists(self.dataFileName+'.bin'):
@@ -183,7 +188,7 @@ class WaterfallWindow(QMainWindow):
                     self.parent.close()
                     return
 
-        else:#There is no process
+        else:  # There is no process
             result = self.initScanMethod()
             if not result:
                 self.close()
@@ -191,9 +196,10 @@ class WaterfallWindow(QMainWindow):
         #Get the updated data
         self.updateFromBin()
         if self.dataMatrix.size == 0:
-            self.axesRef.imshow(np.array([[0,0]]), aspect='auto')
+            self.axesRef.imshow(np.array([[0, 0]]), aspect='auto')
         else:
-            self.axesRef.imshow(self.dataMatrix, aspect='auto', cmap='inferno', norm=None, vmin=self.vmin, vmax=self.vmax)
+            self.axesRef.imshow(self.dataMatrix, aspect='auto',
+                                cmap='inferno', norm=None, vmin=self.vmin, vmax=self.vmax)
         self.powerGraph.draw()
 
     def updateFromBin(self):
@@ -213,7 +219,8 @@ class WaterfallWindow(QMainWindow):
             if numLines == 0:
                 #We got less then a row. just end the update and wait for the next cycle
                 return
-            allNewData = self.dataFileStream.read(int(numLines*self.binaryLineLength))
+            allNewData = self.dataFileStream.read(
+                int(numLines*self.binaryLineLength))
             print('number of bits read in: '+str(len(allNewData)))
             print('number of expected lines: '+str(numLines))
 
@@ -230,16 +237,20 @@ class WaterfallWindow(QMainWindow):
         newLineBinary = allNewDataStream.read(self.binaryLineLength)
         #from this block of data, unpack one row at a time and add them to the matrix
         while newLineBinary != b'':
-            newLine = struct.unpack('f'*int(self.binaryLineLength/4), newLineBinary) # Any injects to simulate attack need to happen here
+            # Any injects to simulate attack need to happen here
+            newLine = struct.unpack(
+                'f'*int(self.binaryLineLength/4), newLineBinary)
             #Update the data matrix
             if self.dataMatrix.size == 0:
                 self.dataMatrix = np.array([list(newLine)])
             else:
-                self.dataMatrix = np.append(self.dataMatrix, [list(newLine)], axis=0)
+                self.dataMatrix = np.append(
+                    self.dataMatrix, [list(newLine)], axis=0)
             #read the data for the next line
             newLineBinary = allNewDataStream.read(self.binaryLineLength)
         if self.dataMatrix.shape[0] > 150:
-            self.dataMatrix = self.dataMatrix[self.dataMatrix.shape[0]-150:, :] #just the last 150 rows
+            # just the last 150 rows
+            self.dataMatrix = self.dataMatrix[self.dataMatrix.shape[0]-150:, :]
 
     def closeEvent(self, event):
         # Make sure we are gracefully ending the scan and not just leaving the process running in the background.
@@ -255,6 +266,8 @@ class WaterfallWindow(QMainWindow):
             from warnings import warn
             warn('Unhandled exception')
             print('either too many clicks or a hw problem.')
+
+
 '''
     #Set a tracepoint in the Python debugger that works with Qt
     from PyQt5.QtCore import pyqtRemoveInputHook

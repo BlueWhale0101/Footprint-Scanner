@@ -6,15 +6,41 @@ full operational tactical picture in the EM spectrum
 Dev Notes:
     2/14/2021: Initial GUI build. Script to call scan is rtl_power_script. Range of scanner 24 – 1766 MHz
 """
-import sys, os.path
-from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox, QCheckBox, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
-from PyQt5.QtCore import Qt, QTimer
-from create_baselines import *
-from ScanView import ScanWindow
-import datetime
-import pickle
-import pdb
+
+
+
+
 from PyQt5.QtCore import pyqtRemoveInputHook
+import pdb
+import pickle
+import datetime
+from SimWaterfallView import SimWaterfallWindow
+from WaterfallView import WaterfallWindow
+from create_baselines import *
+from keyFunctions import *
+from gpsHUDView import gpsHUDView
+from ScanView import ScanWindow
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox, QCheckBox, QMessageBox, QPushButton, QScrollArea, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QGroupBox, QFileDialog
+import sys
+import os.path
+class confirmDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.setWindowTitle("Confirm")
+
+        QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        self.layout = QVBoxLayout()
+        self.prompt = QLabel(" ")
+        self.layout.addWidget(self.prompt)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
 
 
 class MainWindow(QMainWindow):
@@ -39,10 +65,11 @@ class MainWindow(QMainWindow):
             self.configData = dict()
             self.configData['historyFileList'] = self.historyFileList
             with open(self.configFile, 'wb') as outFile:
-                pickle.dump(self.configData, outFile, protocol=3) #Use protocol 3 because the PI is on python 3.7
+                # Use protocol 3 because the PI is on python 3.7
+                pickle.dump(self.configData, outFile, protocol=3)
 
         #General storage space for variables
-        self.configData = {'Sim':False}
+        self.configData = {'Sim': False}
         #Main Layout creation
         self.CentralWindow = QWidget()
         MainLayout = QVBoxLayout()
@@ -98,7 +125,8 @@ class MainWindow(QMainWindow):
         #Set Simulator state checkbox
         self.setSimMode_Checkbox = QCheckBox('Simulation Mode')
         self.setSimMode_Checkbox.setChecked(False)
-        self.setSimMode_Checkbox.stateChanged.connect(lambda:self.setSimMode(self.setSimMode_Checkbox))
+        self.setSimMode_Checkbox.stateChanged.connect(
+            lambda: self.setSimMode(self.setSimMode_Checkbox))
         self.browseHistory_Button.setFixedHeight(ButtonHeight)
         self.HLayout.addWidget(self.setSimMode_Checkbox)
 
@@ -117,7 +145,8 @@ class MainWindow(QMainWindow):
             print('Scanning on HW. IF no SDR is connected this will fail')
             #Perform a scan across the tactical UHF spectrum
             #need keys fileName, hzLow, hzHigh, numBins, gain, repeats, exitTimer
-            scanDict = {'title':'UHF Scan', 'hzLow':'225000000', 'hzHigh':'400000000', 'gain': '500', 'numBins':'140', 'repeats':'10', 'exitTimer':'3m', 'simMode':self.configData['Sim']}
+            scanDict = {'title': 'UHF Scan', 'hzLow': '225000000', 'hzHigh': '400000000', 'gain': '500',
+                        'numBins': '140', 'repeats': '10', 'exitTimer': '3m', 'simMode': self.configData['Sim']}
             self.ScanWindow = WaterfallWindow(scanDict)
             #The scanView is modal, so it will block the mainGUI window until we are done with it.
             self.ScanWindow.show()
@@ -130,15 +159,24 @@ class MainWindow(QMainWindow):
             selFileBase, selFileExt = os.path.splitext(selFileName)
             '''
             #TODO model file selection for playback data
-            simDataInputFilePath = os.path.abspath("SimData\\210922_230951_UHF_scan.bin")
-            print('sim not working yet....')
+            simDataInputFilePath = os.path.abspath(
+                "SimData\\210922_230951_UHF_scan.bin")
+            print('Setting up sim...')
+            #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+            scanDict = {'title': 'UHF Scan', 'hzLow': '225000000', 'hzHigh': '400000000', 'gain': '500',
+                        'numBins': '140', 'repeats': '10', 'exitTimer': '3m', 'simMode': self.configData['Sim']}
+            self.ScanWindow = SimWaterfallWindow(scanDict)
+            #The scanView is modal, so it will block the mainGUI window until we are done with it.
+            self.ScanWindow.show()
 
     def VHFScanMethod(self):
         if not self.configData['Sim']:
             #Not simulated, use real hardware
-            print('Scanning on HW. IF no SDR is connected this will fail')#Perform a scan across the tactical VHF spectrum
+            # Perform a scan across the tactical VHF spectrum
+            print('Scanning on HW. IF no SDR is connected this will fail')
             #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-            scanDict = {'title':'VHF Scan', 'hzLow':'30000000', 'hzHigh':'50000000', 'numBins':'140', 'gain': '500', 'repeats':'10', 'exitTimer':'1m', 'simMode':self.configData['Sim']}
+            scanDict = {'title': 'VHF Scan', 'hzLow': '30000000', 'hzHigh': '50000000', 'numBins': '140',
+                        'gain': '500', 'repeats': '10', 'exitTimer': '1m', 'simMode': self.configData['Sim']}
             self.ScanWindow = WaterfallWindow(scanDict)
             #The scanView is modal, so it will block the mainGUI window until we are done with it.
             self.ScanWindow.show()
@@ -151,15 +189,22 @@ class MainWindow(QMainWindow):
             selFilePath, selFileName = os.path.split(selectedFileDetails)
             selFileBase, selFileExt = os.path.splitext(selFileName)
             '''
-            simDataInputFilePath = os.path.abspath("SimData\\210922_223435_VHF_scan.bin")
-            print('sim not working yet....')
-
+            simDataInputFilePath = os.path.abspath(
+                "SimData\\210922_223435_VHF_scan.bin")
+            print('Setting up sim...')
+            #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+            scanDict = {'title': 'VHF Scan', 'hzLow': '30000000', 'hzHigh': '50000000', 'numBins': '140',
+                        'gain': '500', 'repeats': '10', 'exitTimer': '1m', 'simMode': self.configData['Sim']}
+            self.ScanWindow = SimWaterfallWindow(scanDict)
+            #The scanView is modal, so it will block the mainGUI window until we are done with it.
+            self.ScanWindow.show()
 
     def FullScanMethod(self):
         if not self.configData['Sim']:
             #Not simulated, use real hardware#Perform a scan across the spectrum available to the dongle
             #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-            scanDict = {'title':'Full Scan', 'hzLow':'30000000', 'hzHigh':'1700000000', 'numBins':'10', 'gain': '500', 'repeats':'1', 'exitTimer':'10m', 'simMode':self.configData['Sim']}
+            scanDict = {'title': 'Full Scan', 'hzLow': '30000000', 'hzHigh': '1700000000', 'numBins': '10',
+                        'gain': '500', 'repeats': '1', 'exitTimer': '10m', 'simMode': self.configData['Sim']}
             self.ScanWindow = WaterfallWindow(scanDict)
             #The scanView is modal, so it will block the mainGUI window until we are done with it.
             self.ScanWindow.show()
@@ -172,8 +217,15 @@ class MainWindow(QMainWindow):
             selFilePath, selFileName = os.path.split(selectedFileDetails)
             selFileBase, selFileExt = os.path.splitext(selFileName)
             '''
-            simDataInputFilePath = os.path.abspath("SimData\\250922_152601_Full_scan.bin")
-            print('sim not working yet....')
+            simDataInputFilePath = os.path.abspath(
+                "SimData\\250922_152601_Full_scan.bin")
+            print('Setting up sim...')
+            #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+            scanDict = {'title': 'Full Scan', 'hzLow': '30000000', 'hzHigh': '1700000000', 'numBins': '10',
+                        'gain': '500', 'repeats': '1', 'exitTimer': '10m', 'simMode': self.configData['Sim']}
+            self.ScanWindow = SimWaterfallWindow(scanDict)
+            #The scanView is modal, so it will block the mainGUI window until we are done with it.
+            self.ScanWindow.show()
 
     def GPSScanMethod(self):
         #Determine if the user wants the tactical GPS heads up display or the waterfall scan
@@ -181,10 +233,12 @@ class MainWindow(QMainWindow):
         dialogLayout = QVBoxLayout()
         dialogLayout.addWidget(QLabel('Open GPS Scanner or Heads Up display?'))
         scannerButton = QPushButton('GPS Scanner')
-        scannerButton.clicked.connect(dialogBox.reject) #sets dialogBox.result() to 0. This is also triggered by clicking cancel
+        # sets dialogBox.result() to 0. This is also triggered by clicking cancel
+        scannerButton.clicked.connect(dialogBox.reject)
         dialogLayout.addWidget(scannerButton)
         hudButton = QPushButton('HUD Display')
-        hudButton.clicked.connect(dialogBox.accept) #sets dialogBox.result() to 1
+        # sets dialogBox.result() to 1
+        hudButton.clicked.connect(dialogBox.accept)
         dialogLayout.addWidget(hudButton)
         dialogBox.setLayout(dialogLayout)
         dialogBox.exec_()
@@ -194,11 +248,32 @@ class MainWindow(QMainWindow):
             self.gpsHUDView = gpsHUDView()
             self.gpsHUDView.show()
         else:
-            #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
-            scanDict = {'title':'GPS Scan', 'hzLow':'1227590000', 'hzHigh':'1227610000', 'numBins':'250', 'gain': '500', 'repeats':'10', 'exitTimer':'1m', 'simMode':self.configData['Sim']}
-            self.ScanWindow = WaterfallWindow(scanDict)
-            #The scanView is modal, so it will block the mainGUI window until we are done with it.
-            self.ScanWindow.show()
+            if not self.configData['Sim']:
+                #Not simulated, use real hardware#Perform a scan across the spectrum available to the dongle
+                #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+                scanDict = {'title': 'GPS Scan', 'hzLow': '1227590000', 'hzHigh': '1227610000', 'numBins': '250',
+                            'gain': '500', 'repeats': '10', 'exitTimer': '1m', 'simMode': self.configData['Sim']}
+                self.ScanWindow = WaterfallWindow(scanDict)
+                #The scanView is modal, so it will block the mainGUI window until we are done with it.
+                self.ScanWindow.show()
+            else:
+                #Simulated input data. Select a past file to be used for this process
+                #TODO model file selection for playback data
+                '''
+                #This works fine, but I want to hard set the sim file for now.
+                selectedFileDetails, opts = QFileDialog.getOpenFileName(self)
+                selFilePath, selFileName = os.path.split(selectedFileDetails)
+                selFileBase, selFileExt = os.path.splitext(selFileName)
+                '''
+                simDataInputFilePath = os.path.abspath(
+                    "SimData\\250922_152601_Full_scan.bin")
+                print('Setting up sim...')
+                #must have keys title, minFreq, maxFreq, binSize, interval, exitTimer
+                scanDict = {'title': 'GPS Scan', 'hzLow': '1227590000', 'hzHigh': '1227610000', 'numBins': '250',
+                            'gain': '500', 'repeats': '10', 'exitTimer': '1m', 'simMode': self.configData['Sim']}
+                self.ScanWindow = SimWaterfallWindow(scanDict)
+                #The scanView is modal, so it will block the mainGUI window until we are done with it.
+                self.ScanWindow.show()
 
     def calibrateMethod(self):
         '''
@@ -208,18 +283,78 @@ class MainWindow(QMainWindow):
         will later be used to determine whether anything unexpected is happening
         in the spectrum.
         '''
-        #Popup message box to inform of processself.msgBox = QMessageBox()
-        self.statusBar().showMessage('Calibrating....')
+        #Check if there is already a cal config file. If not, we need to make one with all the bands.
+        if not os.path.exists('calibration_config.txt'):
+            allBands = True
+            self.infoBox = QMessageBox()
+            self.infoBox.setWindowTitle('Sucess!')
+            self.infoBox.setIcon(QMessageBox.Information)
+            self.infoBox.setText(
+                "No Calibrations Configuration found. Calibrating all Bands.")
+            self.infoBox.setStandardButtons(QMessageBox.Ok)
+            self.infoBox.exec()
+        else:
+            allBands = False
+            #Read in the current values.
+            with open('calibration_config.txt', 'r') as calFile:
+                for line in calFile:
+                    if '#' in line:
+                        continue
+                    lineInfo = line.split(':')
+                    if 'L1' in lineInfo[0]:
+                        L1_cal_filename = lineInfo[1].strip()
+                    elif 'L2' in lineInfo[0]:
+                        L2_cal_filename = lineInfo[1].strip()
+                    elif 'VHF' in lineInfo[0]:
+                        VHF_cal_filename = lineInfo[1].strip()
+                    elif 'UHF' in lineInfo[0]:
+                        UHF_cal_filename = lineInfo[1].strip()
+                    elif 'Full_Spectrum' in lineInfo[0]:
+                        Full_Spectrum_cal_filename = lineInfo[1].strip()
 
-        #Perform a calibration, which updates the baseline values.
-        self.UHFBaseline = makeUhfBaseline()
-        self.VHFBaseline = makeVhfBaseline()
-
+        #Popup message box to inform of process. Check if user wants to do all bands
+        confirmStart = confirmDialog(self)
+        confirmStart.prompt.setText('Perform System Calibration?')
+        if confirmStart.exec_():
+            if not allBands:
+                confirmAllBands = confirmDialog(self)
+                confirmAllBands.prompt.setText(
+                    'Calibrate all RF bands? Click Cancel to choose bands, or Ok to calibrate all.')
+                if confirmAllBands.exec_():
+                    allBands = True
+        else:
+            return
+        #Perform requested calibrations, update cal files
+        if not allBands:
+            confirmStart = confirmDialog(self)
+            confirmStart.prompt.setText('Perform GPS Calibration?')
+            if confirmStart.exec_():
+                L1_cal_filename = calibrate_L1()
+                L2_cal_filename = calibrate_L2()
+            confirmStart.prompt.setText('Perform VHF Calibration?')
+            if confirmStart.exec_():
+                VHF_cal_filename = calibrate_VHF()
+            confirmStart.prompt.setText('Perform UHF Calibration?')
+            if confirmStart.exec_():
+                UHF_cal_filename = calibrate_UHF()
+            confirmStart.prompt.setText('Perform Full Spectrum Calibration?')
+            if confirmStart.exec_():
+                FullSpectrum_cal_filename = calibrate_FullSpectrum()
+        else:
+            L1_cal_filename = calibrate_L1()
+            L2_cal_filename = calibrate_L2()
+            VHF_cal_filename = calibrate_VHF()
+            UHF_cal_filename = calibrate_UHF()
+            FullSpectrum_cal_filename = calibrate_FullSpectrum()
         #Set the values in the config file.
-        self.configData['UHFBaseline'] = self.UHFBaseline
-        self.configData['VHFBaseline'] = self.VHFBaseline
-        with open(self.configFile, 'wb') as outFile:
-            pickle.dump(self.configData, outFile, protocol=3)
+        with open('calibration_config.txt', 'w') as calFile:
+            calFile.write(
+                '#Date '+datetime.datetime.now().strftime('%Y-%m-%d')+'\n')
+            calFile.write('L1: '+L1_cal_filename+'\n')
+            calFile.write('L2: '+L2_cal_filename+'\n')
+            calFile.write('VHF: '+VHF_cal_filename+'\n')
+            calFile.write('UHF: '+UHF_cal_filename+'\n')
+            calFile.write('Full_Spectrum: '+FullSpectrum_cal_filename+'\n')
 
         #Popup a message that the cal was successful.
         print("succesfully performed Calibration")
@@ -249,7 +384,8 @@ class MainWindow(QMainWindow):
             if not os.path.exists(os.path.join(selFilePath, selFileBase+'.met')):
                 #It doesn't exist. show a popup and break out.
                 warningBox = QMessageBox()
-                warningBox.setText('The selected file could not be loaded. No meta data file was found.')
+                warningBox.setText(
+                    'The selected file could not be loaded. No meta data file was found.')
                 warningBox.setWindowTitle('Load Failed')
                 warningBox.setModal(True)
                 warningBox.exec_()
@@ -261,13 +397,15 @@ class MainWindow(QMainWindow):
             if not os.path.exists(os.path.join(selFilePath, selFileBase+'.bin')):
                 #It doesn't exist. show a popup and break out.
                 warningBox = QMessageBox()
-                warningBox.setText('The selected file could not be loaded. No meta data file was found.')
+                warningBox.setText(
+                    'The selected file could not be loaded. No meta data file was found.')
                 warningBox.setWindowTitle('Load Failed')
                 warningBox.setModal(True)
                 warningBox.exec_()
                 return
             #The meta file is present. Do the conversion.
             dataToWaterfallImage(os.path.join(selFilePath, selFileBase))
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
