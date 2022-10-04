@@ -39,6 +39,21 @@ From keyFunctions.py:
     https://github.com/AD-Vega/rtl-power-fftw/blob/master/doc/rtl_power_fftw.1.md
 ####################################################################################################
 '''
+import sys
+import datetime
+import io
+import statistics
+import struct
+import time
+import random
+
+
+def SIM_makeScanCall(fileName="default", hzLow="89000000", hzHigh="90000000", numBins="500", gain="500",  repeats="100", exitTimer="5m"):
+    #need keys fileName, hzLow, hzHigh, numBins, gain, repeats, exitTimer
+    #rtl_power_fftw -f 144100000:146100000 -b 500 -n 100 -g 350 -p 0 -e 5m -q -m myscanfilename
+    call = 'python3 SDRSimulator.py -f ' + hzLow + ':' + hzHigh + ' -b ' + numBins + \
+        ' -n ' + repeats + ' -g ' + gain + ' -e ' + exitTimer + ' -q -m ' + fileName
+    return call
 
 
 def SIM_calcLineLength(call):
@@ -66,10 +81,97 @@ def SIM_calcLineLength(call):
                 hzLow = str(int(float(hzLow[0:-1])*1000))
         if element == '-b':
             numBins = int(elements[index+1].strip())
-    print('using freq range '+hzLow+ ' to '+hzHigh)
+    print('using freq range '+hzLow + ' to '+hzHigh)
     hzLow = int(hzLow)
     hzHigh = int(hzHigh)
     #Now that we have the freqs in Hz, calculate the number of bytes
     binaryLineLength = int(math.ceil((hzHigh - hzLow)/BW)*4*numBins)
     print('Number of bytes in a row is '+str(binaryLineLength))
     return binaryLineLength, BW
+
+
+def SIM_startDataPipe(call):
+    #This will start a process that hands off data to a bytestream
+    #Similar to the c drivers that are typically used to communicate with the hardware, this will generate a meta data file then a data file will be periodically written to.
+    print('Entered Sim data pipe startup')
+    print(call)
+    BW = 2000000
+    #process arguments
+    for index, element in enumerate(call):
+        if element == '-f':
+            freqRange = call[index+1].split(':')
+            hzHigh = freqRange[1].strip().upper()
+            hzLow = freqRange[0].strip().upper()
+            if 'G' in hzHigh:
+                hzHigh = str(int(float(hzHigh[0:-1])*1000000000))
+            elif 'M' in hzHigh:
+                hzHigh = str(int(float(hzHigh[0:-1])*1000000))
+            elif 'K' in hzHigh:
+                hzHigh = str(int(float(hzHigh[0:-1])*1000))
+            if 'G' in hzLow:
+                hzLow = str(int(float(hzLow[0:-1])*1000000000))
+            elif 'M' in hzLow:
+                hzLow = str(int(float(hzLow[0:-1])*1000000))
+            elif 'K' in hzLow:
+                hzLow = str(int(float(hzLow[0:-1])*1000))
+        if element == '-b':
+            numBins = int(call[index+1].strip())
+    print('using freq range '+hzLow + ' to '+hzHigh)
+    hzLow = int(hzLow)
+    hzHigh = int(hzHigh)
+    filenameBase = call[-1]
+    #Generate the meta data file
+    '''
+    SAMPLE:
+    136080 # frequency bins (columns)
+    0 # scans (rows)
+    30000000 # startFreq (Hz)
+    49985714 # endFreq (Hz)
+    14285 # stepFreq (Hz)
+    0.0007 # effective integration time secs
+    4 # avgScanDur (sec)
+    2022-09-22 06:06:35 UTC # firstAcqTimestamp UTC
+    2022-09-22 06:07:35 UTC # lastAcqTimestamp UTC
+    '''
+    with open(filenameBase+'.met', 'w') as f:
+        f.write('#########################\n')
+        f.write('SIMULATED DATA\n')
+        f.write(str(numBins) + ' # frequency bins (columns)\n')
+        f.write('0 # scans (rows)\n')
+        f.write(str(hzLow) + ' # startFreq (Hz)\n')
+        f.write(str(hzHigh) + ' # endFreq (Hz)\n')
+        stepSize = (hzHigh - hzLow)/numBins
+        f.write(str(stepSize) + ' # stepFreq (Hz)\n')
+        f.write('0.0007 # effective integration time secs\n')
+        f.write('.5 # avgScanDur (sec)\n')
+        f.write(datetime.datetime.now().strftime(
+            '%Y-%m-%d %H:%M:%S') + ' local # firstAcqTimestamp local')
+
+    #for this case, we are just going to generate noise (a random number for power)
+    #We will write 1000 rows of data for this case.
+    with io.FileIO(filenameBase+'.bin', 'w') as f:
+        #Use a normally distributed, low power distrubution. You shouldn't really see any pattern in this data
+        dist = statistics.NormalDist(-50, 3)
+        for i in range(0, 10000):
+            #Generate a noisy measurement for each freq bin in our range.
+            data = dist.samples(numBins)
+            #Set 1 target freq to have way higher power then others.
+            tgtHz = 4000000
+            deltaHz = tgtHz - hzLow
+            tgtBin = deltaHz/BW
+            data[round(tgtBin, 0)] += 30
+            binData = struct.pack('f'*numBins, *data)
+            f.write(binData)
+            #wait to sim hardware retuning time.
+            time.sleep(random.random()/1000)
+
+    print('Closed the data file, updating meta file')
+    with open(filenameBase+'.met', 'a') as f:
+        f.write(datetime.datetime.now().strftime(
+            '%Y-%m-%d %H:%M:%S') + ' local # lastAcqTimestamp local')
+        f.write('#########################\n')
+
+
+if __name__ == "__main__":
+    print('started script')
+    SIM_startDataPipe(sys.argv)

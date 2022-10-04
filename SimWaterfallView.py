@@ -6,14 +6,15 @@ data from the sensors, then reads data in from the binary file as it is written.
 rate determined by the type of scan called for.
 
 Update notes 9/25/2022
-SimWaterfallView is a clone of this module.
+SimWaterfallView was originally a clone of WaterfallView
 '''
-import matplotlib.pylab as plt
+#import matplotlib.pylab as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 from keyFunctions import *
+from SDRSimulator import *
 import numpy as np
 import datetime
 from time import sleep
@@ -38,7 +39,7 @@ class MplCanvas(FigureCanvasQTAgg):
         super(MplCanvas, self).__init__(fig)
 
 
-class WaterfallWindow(QMainWindow):
+class SimWaterfallWindow(QMainWindow):
 
     def __init__(self, configDict):
         super().__init__()
@@ -91,6 +92,7 @@ class WaterfallWindow(QMainWindow):
         MainLayout = QVBoxLayout()
 
         # Start the first scan so there is data in the pipe
+        #SIM - use the
         self.initScanMethod()
 
         #Init the main graph
@@ -139,25 +141,15 @@ class WaterfallWindow(QMainWindow):
         self.dataFileName = 'Data/' + \
             datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + self.scanType + '_scan'
         print('Scan saving to '+self.dataFileName)
-        self.currentCommand = makeScanCall(fileName=self.dataFileName, hzLow=self.configDict['hzLow'], hzHigh=self.configDict['hzHigh'],
-                                           numBins=self.configDict['numBins'], gain=self.configDict['gain'],  repeats=self.configDict['repeats'], exitTimer=self.configDict['exitTimer'])
+        self.currentCommand = SIM_makeScanCall(fileName=self.dataFileName, hzLow=self.configDict['hzLow'], hzHigh=self.configDict['hzHigh'], numBins=self.configDict[
+                                           'numBins'], gain=self.configDict['gain'],  repeats=self.configDict['repeats'], exitTimer=self.configDict['exitTimer'])
         print('###################')
         print(self.currentCommand)
         print('###################')
-        if self.actualBandwidth == None:
-            try:
-                # calculates the number of bits in one row of the output file and detects the bandwidth of this device.
-                self.binaryLineLength, self.actualBandwidth = calcLineLength(
-                    self.currentCommand)
-            except:
-                #The bandwidth detection also serves as a hardware detection test. If this failed, the sdr is probably either not available or not plugged in. Warn the user and return out.
-                warningBox = QMessageBox()
-                warningBox.setText('SDR hardware was not detected.')
-                warningBox.setWindowTitle('Scan Failed')
-                warningBox.setModal(True)
-                warningBox.exec_()
-                self.close()
-                return False
+        # calculates the number of bits in one row of the output file and detects the bandwidth of this device.
+        self.binaryLineLength, self.actualBandwidth = SIM_calcLineLength(
+            self.currentCommand)
+
         #Before starting the scan, write out a meta data file so that even if we terminate the scan early
         #the data can still be understood.
         # This opens the command asynchronously. poll whether the scan is running with p.poll().
@@ -167,9 +159,9 @@ class WaterfallWindow(QMainWindow):
         #and let it otherwise print to the screen, and it works with no errors. This actually gives more insight
         #into whats going on anyway.
         #self.currentScanCommandProcess = subprocess.Popen(self.currentCommand, shell=True, stdout = subprocess.PIPE,\
-                #stderr = subprocess.PIPE, preexec_fn=os.setsid)
+        #stderr = subprocess.PIPE, preexec_fn=os.setsid)
         self.currentScanCommandProcess = subprocess.Popen(
-            self.currentCommand, shell=True, preexec_fn=os.setsid)
+            self.currentCommand, shell=True, preexec_fn=os.setsid, env=os.environ)
         print('Running command '+self.currentCommand)
         self.currentScanTime = datetime.datetime.now()
         while not os.path.exists(self.dataFileName+'.bin'):
@@ -259,6 +251,7 @@ class WaterfallWindow(QMainWindow):
             print("User has closed the window")
             self.updateTimer.stop()
             self.dataFileStream.close()
+            self.currentScanCommandProcess.terminate()
             os.killpg(self.currentScanCommandProcess.pid, signal.SIGINT)
             self.currentScanCommandProcess.wait(10)
             event.accept()
