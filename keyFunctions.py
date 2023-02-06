@@ -25,14 +25,11 @@
     https://github.com/AD-Vega/rtl-power-fftw/blob/master/doc/rtl_power_fftw.1.md
 '''
 
-
-def makeScanCall(fileName="default", hzLow="89000000", hzHigh="90000000", numBins="500", gain="500",  repeats="100", exitTimer="5m"):
+def makeScanCall(fileName="default", hzLow = "89000000", hzHigh = "90000000", numBins = "500", gain = "500",  repeats= "100", exitTimer = "5m"):
     #need keys fileName, hzLow, hzHigh, numBins, gain, repeats, exitTimer
     #rtl_power_fftw -f 144100000:146100000 -b 500 -n 100 -g 350 -p 0 -e 5m -q -m myscanfilename
-    call = 'rtl_power_fftw -f ' + hzLow + ':' + hzHigh + ' -b ' + \
-        numBins + ' -g ' + gain + ' -e ' + exitTimer + ' -q -m ' + fileName
+    call = 'rtl_power_fftw -f ' + hzLow + ':' + hzHigh  + ' -b ' + numBins  + ' -n ' + repeats  + ' -g ' + gain  + ' -e ' + exitTimer + ' -q -m ' + fileName
     return call
-
 
 def detectBandwidth():
     #Detects the bandwidth of the attached hardware based on the output from a short rtl_power_fftw
@@ -40,21 +37,18 @@ def detectBandwidth():
     actualBandwidth = None
     call = makeScanCall(exitTimer='2s')
     print('running sample scan: '+call)
-    proc = subprocess.Popen(call.split(
-        ' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    proc = subprocess.Popen(call.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     feedbackErr, feedbackOut = proc.communicate()
     lines = str(feedbackOut).split('\\n')
     for line in lines:
         if line.count('Actual sample rate:') > 0:
-            # this splits the line by :, then pulls the number out of the second half
-            actualBandwidth = int(line.split(':')[1].strip().split(' ')[0])
+            actualBandwidth = int(line.split(':')[1].strip().split(' ')[0]) #this splits the line by :, then pulls the number out of the second half
             print('Found bandwidth in text.')
             break
         else:
             continue
     print('Actual bandwidth detected is '+str(actualBandwidth))
     return actualBandwidth
-
 
 def calcLineLength(call):
     import math
@@ -80,14 +74,13 @@ def calcLineLength(call):
                 hzLow = str(int(float(hzLow[0:-1])*1000))
         if element == '-b':
             numBins = int(elements[index+1].strip())
-    print('using freq range '+hzLow + ' to '+hzHigh)
+    print('using freq range '+hzLow+ ' to '+hzHigh)
     hzLow = int(hzLow)
     hzHigh = int(hzHigh)
     #Now that we have the freqs in Hz, calculate the number of bytes
     binaryLineLength = int(math.ceil((hzHigh - hzLow)/BW)*4*numBins)
     print('Number of bytes in a row is '+str(binaryLineLength))
     return binaryLineLength, BW
-
 
 def convertFile(inputFileName, outputFileName=None):
     import csv
@@ -128,13 +121,11 @@ def convertFile(inputFileName, outputFileName=None):
                 continue
             if line.count('firstAcqTimestamp UTC') > 0:
                 t = line.split('#')[0].strip()
-                startTime = datetime.datetime.strptime(
-                    t, '%Y-%m-%d %H:%M:%S %Z')
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
                 continue
             if line.count('lastAcqTimestamp UTC') > 0:
                 t = line.split('#')[0].strip()
-                startTime = datetime.datetime.strptime(
-                    t, '%Y-%m-%d %H:%M:%S %Z')
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
                 continue
         #Open the file we are going to write output
         with open(outputFileName, 'w') as outFile:
@@ -161,7 +152,6 @@ def convertFile(inputFileName, outputFileName=None):
                         #In this case, we need to just write a partial line out
                         numBins = int(len(dataLine)/4)
         print('Completed exporting '+outputFileName)
-
 
 def fileToMatrix(inputFileName):
     import struct
@@ -200,13 +190,11 @@ def fileToMatrix(inputFileName):
                 continue
             if line.count('firstAcqTimestamp UTC') > 0:
                 t = line.split('#')[0].strip()
-                startTime = datetime.datetime.strptime(
-                    t, '%Y-%m-%d %H:%M:%S %Z')
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
                 continue
             if line.count('lastAcqTimestamp UTC') > 0:
                 t = line.split('#')[0].strip()
-                startTime = datetime.datetime.strptime(
-                    t, '%Y-%m-%d %H:%M:%S %Z')
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
                 continue
         #Now parse and write out data
         binaryLineLength = numBins*4
@@ -218,15 +206,13 @@ def fileToMatrix(inputFileName):
                 if outputDataMatrix.size == 0:
                     outputDataMatrix = rowContent
                 else:
-                    outputDataMatrix = np.vstack(
-                        [rowContent, outputDataMatrix])
+                    outputDataMatrix = np.vstack([rowContent, outputDataMatrix])
                 dataLine = dataFile.read(binaryLineLength)
                 if len(dataLine) < binaryLineLength:
                     #If the scan was disrupted, it will write out the current hop, then end.
                     #In this case, we need to just write a partial line out
                     numBins = int(len(dataLine)/4)
         return outputDataMatrix
-
 
 def dataToWaterfallImage(recordFile=None, **kwargs):
     #given a record file, convert to an image showing all the data recorded.
@@ -268,13 +254,11 @@ def dataToWaterfallImage(recordFile=None, **kwargs):
                 continue
             if line.count('firstAcqTimestamp UTC') > 0:
                 t = line.split('#')[0].strip()
-                startTime = datetime.datetime.strptime(
-                    t, '%Y-%m-%d %H:%M:%S %Z')
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
                 continue
             if line.count('lastAcqTimestamp UTC') > 0:
                 t = line.split('#')[0].strip()
-                startTime = datetime.datetime.strptime(
-                    t, '%Y-%m-%d %H:%M:%S %Z')
+                startTime = datetime.datetime.strptime(t, '%Y-%m-%d %H:%M:%S %Z')
                 continue
     #Done with the meta data. Now loop through the file and grab a line at a time.
     #We are just building the array here.
@@ -289,8 +273,7 @@ def dataToWaterfallImage(recordFile=None, **kwargs):
             if len(outputDataMatrix) == 0:
                 outputDataMatrix = np.array(list(data))
             else:
-                outputDataMatrix = np.vstack(
-                    [outputDataMatrix, np.array(list(data))])
+                outputDataMatrix = np.vstack([outputDataMatrix, np.array(list(data))])
             dataLine = dataFile.read(binaryLineLength)
             if len(dataLine) < binaryLineLength:
                 #If the scan was disrupted, it will write out the current hop, then end.

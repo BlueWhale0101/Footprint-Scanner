@@ -23,10 +23,6 @@ To Do:
 4. Smooth data with moving average in bin.
 
 ######################################################################
-Ongoing notes to self.
-Looks like I was setting way too much detail in the call to the fft library. I stripped out a bunch of arguments. Now the trick is predicting how many columns the data is going to have directly, which I previously thought was a function of the num_bins value I was passing into the driver, but I know think that's the number of bins the FFT uses for it's algorithm. I don't think you necessarily get out a number calculable from num_bins at all.
-
-######################################################################
 
 Helpful links and notes:
 
