@@ -3,6 +3,30 @@
 Baseline calibration calculation function is written
 Main GUI is written, but doesn't call any RF Functions.
 
+Usage:
+
+Start the program from the icon on the desktop. Choose the option for performing a VHF Scan, UHF scan, or full scan (UHF + VHF). Calibration will perform a long read of each section of the spectrum and provide an average noise value for comparing data to.
+
+While the scan is ongoing, a plot of current data will stream along the page.
+
+
+
+######################################################################
+
+To Do:
+
+1. Process data stream for each bin.
+2. Spectrogram/waterfall display, column/bin. Time is down, so the most recent scan is on top.
+3. Integrate baseline differencing.
+4. Smooth data with moving average in bin.
+
+######################################################################
+Ongoing notes to self.
+Looks like I was setting way too much detail in the call to the fft library. I stripped out a bunch of arguments. Now the trick is predicting how many columns the data is going to have directly, which I previously thought was a function of the num_bins value I was passing into the driver, but I know think that's the number of bins the FFT uses for it's algorithm. I don't think you necessarily get out a number calculable from num_bins at all.
+
+######################################################################
+
+Helpful links and notes:
 
 Build RTL-SDR on your Mac: https://gist.github.com/jheasly/9477732
 

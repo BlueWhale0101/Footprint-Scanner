@@ -48,11 +48,11 @@ import time
 import random
 
 
-def SIM_makeScanCall(fileName="default", hzLow="89000000", hzHigh="90000000", numBins="500", gain="500",  repeats="100", exitTimer="5m"):
+def makeScanCall(fileName="default", hzLow="89000000", hzHigh="90000000", numBins="500", gain="500",  repeats="100", exitTimer="5m"):
     #need keys fileName, hzLow, hzHigh, numBins, gain, repeats, exitTimer
     #rtl_power_fftw -f 144100000:146100000 -b 500 -n 100 -g 350 -p 0 -e 5m -q -m myscanfilename
-    call = 'python3 SDRSimulator.py -f ' + hzLow + ':' + hzHigh + ' -b ' + numBins + \
-        ' -n ' + repeats + ' -g ' + gain + ' -e ' + exitTimer + ' -q -m ' + fileName
+    call = 'rtl_power_fftw -f ' + hzLow + ':' + hzHigh + ' -b ' + \
+        numBins + ' -g ' + gain + ' -e ' + exitTimer + ' -q -m ' + fileName
     return call
 
 
@@ -60,7 +60,7 @@ def SIM_calcLineLength(call):
     import math
     #Bandwidth is a representative number from hardware testing.
     BW = 2000000
-    #calculates the number of bytes in a line of data from the matrix binary output file for a given call
+    #calculates the number of bytes in a line of data from the matrix bytes output file for a given call
     elements = call.split(' ')
     for index, element in enumerate(elements):
         if element == '-f':
@@ -85,9 +85,10 @@ def SIM_calcLineLength(call):
     hzLow = int(hzLow)
     hzHigh = int(hzHigh)
     #Now that we have the freqs in Hz, calculate the number of bytes
-    binaryLineLength = int(math.ceil((hzHigh - hzLow)/BW)*4*numBins)
-    print('Number of bytes in a row is '+str(binaryLineLength))
-    return binaryLineLength, BW
+
+    bytesLineLength = int(math.ceil((hzHigh - hzLow)/BW)*4*numBins)
+    print('Number of bytes in a row is '+str(bytesLineLength))
+    return bytesLineLength, BW
 
 
 def SIM_startDataPipe(call):
@@ -156,10 +157,10 @@ def SIM_startDataPipe(call):
             #Generate a noisy measurement for each freq bin in our range.
             data = dist.samples(numBins)
             #Set 1 target freq to have way higher power then others.
-            tgtHz = 4000000
+            tgtHz = 40000000
             deltaHz = tgtHz - hzLow
             tgtBin = deltaHz/BW
-            data[round(tgtBin, 0)] += 30
+            data[round(tgtBin)] += 30
             binData = struct.pack('f'*numBins, *data)
             f.write(binData)
             #wait to sim hardware retuning time.
@@ -175,3 +176,11 @@ def SIM_startDataPipe(call):
 if __name__ == "__main__":
     print('started script')
     SIM_startDataPipe(sys.argv)
+
+'''
+    #Set a tracepoint in the Python debugger that works with Qt
+    from PyQt5.QtCore import pyqtRemoveInputHook
+    from pdb import set_trace
+    pyqtRemoveInputHook()
+    set_trace()
+'''

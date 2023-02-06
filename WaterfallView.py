@@ -140,14 +140,14 @@ class WaterfallWindow(QMainWindow):
             datetime.datetime.now().strftime('%d%m%y_%H%M%S_') + self.scanType + '_scan'
         print('Scan saving to '+self.dataFileName)
         self.currentCommand = makeScanCall(fileName=self.dataFileName, hzLow=self.configDict['hzLow'], hzHigh=self.configDict['hzHigh'],
-                                           numBins=self.configDict['numBins'], gain=self.configDict['gain'],  repeats=self.configDict['repeats'], exitTimer=self.configDict['exitTimer'])
+                                           numBins=self.configDict['numBins'], gain=self.configDict['gain'],  exitTimer=self.configDict['exitTimer'])
         print('###################')
         print(self.currentCommand)
         print('###################')
         if self.actualBandwidth == None:
             try:
                 # calculates the number of bits in one row of the output file and detects the bandwidth of this device.
-                self.binaryLineLength, self.actualBandwidth = calcLineLength(
+                self.bytesLineLength, self.actualBandwidth = calcLineLength(
                     self.currentCommand)
             except:
                 #The bandwidth detection also serves as a hardware detection test. If this failed, the sdr is probably either not available or not plugged in. Warn the user and return out.
@@ -210,21 +210,21 @@ class WaterfallWindow(QMainWindow):
         if len(allNewData) == 0:
             print('nothing written yet...')
             return
-        elif np.mod(len(allNewData), self.binaryLineLength) > 0:
+        elif np.mod(len(allNewData), self.bytesLineLength) > 0:
             #There is a partial row here, ane there may be less than a full row.
             #keep the complete rows,
             #and reset the pointer to the start of the next row for next update
-            numLines = np.floor(len(allNewData)/self.binaryLineLength)
+            numLines = np.floor(len(allNewData)/self.bytesLineLength)
             self.dataFileStream.seek(lastPos)
             if numLines == 0:
                 #We got less then a row. just end the update and wait for the next cycle
                 return
             allNewData = self.dataFileStream.read(
-                int(numLines*self.binaryLineLength))
+                int(numLines*self.bytesLineLength))
             print('number of bits read in: '+str(len(allNewData)))
             print('number of expected lines: '+str(numLines))
 
-        elif len(allNewData) < self.binaryLineLength:
+        elif len(allNewData) < self.bytesLineLength:
             #There is not enough data for a full line. reset the pointer
             print('Not enough data yet...')
             print('Current Pointer: '+str(self.dataFileStream.tell()))
@@ -234,12 +234,12 @@ class WaterfallWindow(QMainWindow):
 
         print('Found '+str(len(allNewData))+' of data')
         allNewDataStream = io.BytesIO(allNewData)
-        newLineBinary = allNewDataStream.read(self.binaryLineLength)
+        newLinebytes = allNewDataStream.read(self.bytesLineLength)
         #from this block of data, unpack one row at a time and add them to the matrix
-        while newLineBinary != b'':
+        while newLinebytes != b'':
             # Any injects to simulate attack need to happen here
             newLine = struct.unpack(
-                'f'*int(self.binaryLineLength/4), newLineBinary)
+                'f'*int(self.bytesLineLength/4), newLinebytes)
             #Update the data matrix
             if self.dataMatrix.size == 0:
                 self.dataMatrix = np.array([list(newLine)])
@@ -247,7 +247,7 @@ class WaterfallWindow(QMainWindow):
                 self.dataMatrix = np.append(
                     self.dataMatrix, [list(newLine)], axis=0)
             #read the data for the next line
-            newLineBinary = allNewDataStream.read(self.binaryLineLength)
+            newLinebytes = allNewDataStream.read(self.bytesLineLength)
         if self.dataMatrix.shape[0] > 150:
             # just the last 150 rows
             self.dataMatrix = self.dataMatrix[self.dataMatrix.shape[0]-150:, :]
