@@ -1,5 +1,5 @@
 # Footprint-Scanner
-The BatHunter system is a Raspberry Pi based spectrum analyzer which specifically monitors the RF spectrum in the military bands to perform three functions:
+The EARS system is a Raspberry Pi based spectrum analyzer which specifically monitors the RF spectrum in the military bands to perform three functions:
 
 1. Wideband power monitoring and logging, for post operation analysis.
 2. Provide insight into the RF visibility of the using unit local to the operator.
@@ -17,10 +17,9 @@ While the scan is ongoing, a plot of current data will stream along the page.
 
 To Do:
 
-1. Process data stream for each bin.
-2. Spectrogram/waterfall display, column/bin. Time is down, so the most recent scan is on top.
+1. Put the data processing in its own thread
+2. Put the spectrum plot view in its own thread
 3. Integrate baseline differencing.
-4. Smooth data with moving average in bin.
 
 ######################################################################
 
