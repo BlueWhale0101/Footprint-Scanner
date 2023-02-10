@@ -24,6 +24,8 @@
 
 # config files #
 *.scn
+*.DS_Store
+*.hd5
 
 # Logs and databases #
 ######################
@@ -45,3 +47,6 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+.DS_Store
+.DS_Store
+tutorial1.h5
