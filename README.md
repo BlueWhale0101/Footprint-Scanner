@@ -23,13 +23,6 @@ To Do:
 
 ######################################################################
 
-Python Install notes:
-
-~pytables
-~pyqt5
-~pandas, and associated dependencies
-
-######################################################################
 Helpful links and notes:
 
 Build RTL-SDR on your Mac: https://gist.github.com/jheasly/9477732
