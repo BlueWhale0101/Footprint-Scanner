@@ -45,6 +45,8 @@ def main():
 
 
     #Get the baseline data
+    #Definig what the baseline is might be tricky, depending on how much we let the user control. 
+    #For now, baseline is going to be a red horizontal line. 
 
     #initialize the max
     maxDF = pd.DataFrame(columns=['frequency', 'power'])
@@ -80,6 +82,7 @@ def main():
         maxDF.reset_index().plot(ax=ax, x='freqCompare', y='power', style='y', label='max hold', grid='On', title = 'ScanView')
         df.plot(ax=ax, x='frequency', y='power', grid='On', title = 'ScanView', label='current', alpha = .7)
         ax.fill_between(df['frequency'], df['power'], df['power'].min(), alpha = .5)
+        plt.hlines(df['power'].min()+2, xmax= df['frequency'].max(), xmin=df['frequency'].min(), colors='r', linestyles='dotted')
         plt.pause(.1)
 
 
