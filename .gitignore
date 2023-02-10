@@ -25,6 +25,7 @@
 # config files #
 *.scn
 *.DS_Store
+*.hd5
 
 # Logs and databases #
 ######################
