@@ -10,19 +10,6 @@ import datetime
 from numpy import maximum
 
 
-#Start our global logging queue, max size 25. Multiple processes and threads need this. 
-#I don't really expect it to get past 1 or 2, so this should be PLENTY.
-logQueue = Queue(25)
-
-###profiling stuff
-#import pdb
-# import cProfile, pstats, io
-# from pstats import SortKey
-
-# pr = cProfile.Profile()
-# pr.enable()
-############
-
 def processRFScan(scanData):
     data = str(scanData).strip().split('\\n')
     data = [x for x in data if '#' not in x and len(x) > 2] #Get rid of rows with comments and blank lines
@@ -46,8 +33,7 @@ def takeBaselineMeasurement():
     Measure power across a very broad spectrum and return the results from the stdout output.
     '''
     simFlag = False #Sim isn't implemented yet. This is hardcoded false for now. 
-    #cmd = 'rtl_power_fftw -f 30M:1.7G -b 500 -n 500 -g 100 -q'
-    cmd = 'rtl_power_fftw -f 30M:40M -b 500 -n 500 -g 100 -q'
+    cmd = 'rtl_power_fftw -f 30M:1.7G -b 500 -n 500 -g 100 -q'
     args = shlex.split(cmd)
     s = sb.run(args, stdout=sb.PIPE, stderr=sb.PIPE, shell=False)
     while not s.returncode == 0:
@@ -79,16 +65,18 @@ def convertFreqtoInt(freqStr):
         highFreq = highFreq.replace(p, i)
     return (int(lowFreq), int(highFreq))
 
-def main(cmdFreq = '30M:35M'):
-    simFlag = False #Sim isn't implemented yet. This is hardcoded false for now. 
+def streamScan(cmdFreq = '30M:35M'):
+    simFlag = False #Sim isn't implemented yet. This is hardcoded False for now. 
 
     plt.ion()
     plt.style.use('dark_background')
     fig, ax = plt.subplots()
     cmd = 'rtl_power_fftw -f {0} -b 500 -n 100 -g 100 -q'.format(cmdFreq)
     args = shlex.split(cmd)
-
-    global logQueue
+    #Start our global logging queue, max size 25. Multiple processes and threads need this. 
+    #I don't really expect it to get past 1 or 2, so this should be PLENTY.
+    global logQueue 
+    logQueue = Queue(25)
     #Start up the logging thread
     logger = Process(target=DB_Logger, args=(logQueue,), daemon=True)
     logger.start()
@@ -147,18 +135,9 @@ def main(cmdFreq = '30M:35M'):
         plt.pause(.1)
 
 
-    ###Profiling stuff#######
-    # pr.disable()
-    # s = io.StringIO()
-    # sortby = SortKey.CUMULATIVE
-    # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    # ps.print_stats()
-    # print(s.getvalue())
-    ###########
     input('Press Enter to continue...')
     print('Closing logger...')
     logQueue.put('Quit')
-    logQueue.close()
     logger.join()
 
 if __name__ == '__main__':
@@ -170,4 +149,4 @@ if __name__ == '__main__':
         takeBaselineMeasurement()
 
     #Call main function
-    main()
+    streamScan()

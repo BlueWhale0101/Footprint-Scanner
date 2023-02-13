@@ -138,13 +138,12 @@ def StoreBaselineData(pkt = None, queue=None, DB_Name="EARS_DB.h5"):
         return
     if queue:
         pkt = queue.get(timeout = 30) #Wait up to 30 seconds for something from the queue. Otherwise, error out. 
-
-    
     #Check that our file exists. We can wipe out the old baseline node.
     if not os.path.isfile(DB_Name):
         h5file = open_file(DB_Name, mode="w", title="EARS Measurements Record")
     else:
         h5file = open_file(DB_Name, mode="a", title="EARS Measurements Record")
+    #Always running the create_group and create_table commands is intentional - we want to wipe out the old tables every time.
     group = h5file.create_group("/", 'baseline', 'RF Power baseline information')
     table = h5file.create_table(group, 'readout', RFMeasurements, "Baseline Measurements Record")
     #table handles are retrieved from the file handle with the format file_handle.mount_point.group_handle.table_handle
