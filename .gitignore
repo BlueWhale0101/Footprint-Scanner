@@ -24,8 +24,7 @@
 
 # config files #
 *.scn
-*.DS_Store
-*.hd5
+.DS_Store
 
 # Logs and databases #
 ######################
@@ -37,6 +36,7 @@
 *.jpg
 *.met
 *.bin
+*.hd5
 
 # OS generated files #
 ######################
@@ -50,3 +50,5 @@ Thumbs.db
 .DS_Store
 .DS_Store
 tutorial1.h5
+EARS_DB.h5
+.gitignore
