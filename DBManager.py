@@ -16,11 +16,15 @@ def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
         return
     
     if not os.path.isfile(DB_Name):
+        #Check db file exists
         h5file = open_file(DB_Name, mode="w", title="EARS Measurements Record")
         group = h5file.create_group("/", 'measurement', 'RF Power information')
         table = h5file.create_table(group, 'readout', RFMeasurements, "Measurements Record")
-        
-
+    with open_file(DB_Name, mode="a", title="EARS Measurements Record") as h5file:
+        #Check that the table has already been made. If not, make it. 
+        if not 'measurement' in str(h5file.list_nodes('/')):
+            group = h5file.create_group("/", 'measurement', 'RF Power information')
+            table = h5file.create_table(group, 'readout', RFMeasurements, "Measurements Record")
     while True:
         #Just keep going until the task is killed. If nothing is put in the queue, or if the queue is closed, 
         #this task should close the db file and close out. 
@@ -145,7 +149,7 @@ def StoreBaselineData(pkt = None, queue=None, DB_Name="EARS_DB.h5"):
         h5file = open_file(DB_Name, mode="a", title="EARS Measurements Record")
     #Always running the create_group and create_table commands is intentional - we want to wipe out the old tables every time.
     group = h5file.create_group("/", 'baseline', 'RF Power baseline information')
-    table = h5file.create_table(group, 'readout', RFMeasurements, "Baseline Measurements Record")
+    table = h5file.create_table(group, 'readout', RFMeasurements, "Baseline Record")
     #table handles are retrieved from the file handle with the format file_handle.mount_point.group_handle.table_handle
     table = h5file.root.baseline.readout
     measurement = table.row

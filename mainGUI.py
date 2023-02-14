@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox, QCheckBox, Q
 import sys
 import os.path
 from BinarySpectroViewer import *
+from EARSscan import *
 
 class confirmDialog(QDialog):
     def __init__(self, parent=None):
@@ -139,7 +140,16 @@ class MainWindow(QMainWindow):
 
     def UHFScanMethod(self):
         if not self.configData['Sim']:
-            streamScan('225M:400M')
+            #streamScan('225M:400M')
+            '''
+            Sigh..... this starts a brand new process for the scan window, then this window's
+            process blocks until we close the new window. HOWEVER - this doesn't stop the user 
+            from opening multiple windows. That's also fine, but it will make both windows 
+            appear to perform quite poorly as the two compete for use of the SDR.
+            '''
+            scanWindowProcess = Process(target=startScanWindow, args=('225M:400M', ))
+            scanWindowProcess.start()
+            scanWindowProcess.join()
         else:
             #Sim is not implemented yet
             return
@@ -173,17 +183,24 @@ class MainWindow(QMainWindow):
         will later be used to determine whether anything unexpected is happening
         in the spectrum.
         '''
-        takeBaselineMeasurement()
-
-        #Popup a message that the cal was successful.
-        print("succesfully performed Calibration")
-        self.msgBox = QMessageBox()
-        self.msgBox.setWindowTitle('Sucess!')
-        self.msgBox.setIcon(QMessageBox.Information)
-        self.msgBox.setText("Successfully Calibrated System")
-        self.msgBox.setStandardButtons(QMessageBox.Ok)
-        self.statusBar().showMessage('Done Calibrating')
-        self.msgBox.exec()
+        if takeBaselineMeasurement() == 'Error':
+            self.msgBox = QMessageBox()
+            self.msgBox.setWindowTitle('Error!')
+            self.msgBox.setIcon(QMessageBox.Information)
+            self.msgBox.setText("Failed to Calibrate System\nCheck hardware connections")
+            self.msgBox.setStandardButtons(QMessageBox.Ok)
+            self.statusBar().showMessage('Error Calibrating')
+            self.msgBox.exec()
+        else:
+            #Popup a message that the cal was successful.
+            print("succesfully performed Calibration")
+            self.msgBox = QMessageBox()
+            self.msgBox.setWindowTitle('Sucess!')
+            self.msgBox.setIcon(QMessageBox.Information)
+            self.msgBox.setText("Successfully Calibrated System")
+            self.msgBox.setStandardButtons(QMessageBox.Ok)
+            self.statusBar().showMessage('Done Calibrating')
+            self.msgBox.exec()
 
     def setSimMode(self, checkBox):
         '''

@@ -42,7 +42,7 @@ def takeBaselineMeasurement():
             if 'No RTL-SDR' in str(s.stderr):
                 print('You forgot to plug in the RTL-SDR!')
             print('Scan failed with error "{}"'.format(s.stderr))
-            return
+            return 'Error'
         else:
             #We need to just keep waiting to finish. This scan really does take awhile.
             sleep(.5)
@@ -65,7 +65,90 @@ def convertFreqtoInt(freqStr):
         highFreq = highFreq.replace(p, i)
     return (int(lowFreq), int(highFreq))
 
-def streamScan(cmdFreq = '30M:35M'):
+def streamScan(cmdFreq = '30M:35M', SWBqueue=None):
+    '''
+    given a commanded set of frequencies and a queue to control the process, 
+    perform the following steps in a loop.
+    1. Manage the database - save our data!
+    2. spawn a subprocess for interfacing with the hardware
+    3. process the data that comes back from the hardware/driver into three dataframes. 
+        Max, last measured and baseline. 
+    4. Check for a command in the queue. Execute any commands that are found. 
+    5. Once the queue is empty, Send the dataframes back to the viewer.
+    '''
+    simFlag = False #Sim isn't implemented yet. This is hardcoded False for now.
+    quitFlag = False
+    currentCommand = None
+
+    print('Received command ', cmdFreq)
+
+    cmd = 'rtl_power_fftw -f {0} -b 500 -n 100 -g 100 -q'.format(cmdFreq)
+    args = shlex.split(cmd)
+    global logQueue 
+    logQueue = Queue(25)
+    #Start up the logging thread
+    logger = Process(target=DB_Logger, args=(logQueue,), daemon=True)
+    logger.start()
+
+    #Get the baseline data
+    #Figure out the numeric equivalent of our commanded freqs
+    lowF, highF = convertFreqtoInt(cmdFreq)
+    blData = RetrieveBaselineData(freqMin = lowF, freqMax = highF)
+    if blData is None:
+        print('Blank baseline data!')
+        baseline = pd.DataFrame(columns=['frequency', 'power'])
+    else:
+        baseline = pd.DataFrame(blData, columns=['frequency', 'power'])
+    #initialize the max
+    maxDF = pd.DataFrame(columns=['frequency', 'power'])
+    #Start execution loop
+    while not quitFlag:
+        s = sb.run(args, stdout=sb.PIPE, stderr=sb.PIPE, shell=False)
+        while not s.returncode == 0:
+            if s.returncode == 1:
+                #We errored out. Most likely, RTL SDR is not plugged in
+                if 'No RTL-SDR' in str(s.stderr):
+                    print('You forgot to plug in the RTL-SDR!')
+                print('Scan failed with error "{}"'.format(s.stderr))
+                return
+            else:
+                #We need to just keep waiting to finish. This scan can take awhile.
+                sleep(.5)
+        data = processRFScan(s.stdout) #Process the bytes like object into the list of tuples we use for processing
+        df = pd.DataFrame(data, columns=['frequency', 'power']) #revisit this later. Profiling showed this wasn't a big eater, but the dataframe class is way beefier than I need for just a plot
+        threading.Thread(target=passToDbLogger, args=(data, simFlag)).start() #Go ahead and leave this in a different thread. This present thread should focus on processing the RF data        
+        
+        #Got the new data - calculate max
+        df['freqCompare'] = df['frequency'].round(0)
+        df = df.set_index('freqCompare')
+        if maxDF.empty:
+            #Initialize the max to the last measurement
+            maxDF = df
+        else:
+            #not the first time. compare more discreet freqs by rounding
+            #I basically don't care about the frequency column in maxDF, only the rounded one. 
+            maxDF.combine(df, maximum, overwrite = False)
+        #Check if there is a command for us in the queue.
+        if not SWBqueue.empty():
+            currentCommand = SWBqueue.get()
+        #Go ahead and put our data in the queue now. 
+        # #TODO visit if we need to execute command first. what if the user hits quit like 90 times super fast?
+        if not SWBqueue.full():
+            SWBqueue.put((df, maxDF.reset_index(), baseline))
+        else:
+            Warning('Software bus overflow: Dropping measurement data')
+        #Execute commands
+        #Only one command right now - quit
+        if currentCommand == 'QUIT':
+            quitFlag = True
+    #This executes after breaking out of the execution loop. It needs to clean us up.
+    print('Closing logger...')
+    logQueue.put('Quit')
+    logger.join()    
+
+
+def streamScanTest(cmdFreq = '30M:35M'):
+    #This is used to test the logic, processing, and any changes. 
     simFlag = False #Sim isn't implemented yet. This is hardcoded False for now. 
 
     plt.ion()
@@ -149,4 +232,4 @@ if __name__ == '__main__':
         takeBaselineMeasurement()
 
     #Call main function
-    streamScan()
+    streamScanTest()
