@@ -122,11 +122,14 @@ class EARSscanWindow(QMainWindow):
         # This would probably cause problems if the user then immediately tried to start another scan.
         print('gracefully closing...')
         while not self.SWBQueue.empty():
+            print('Flushing queue...')
             #Ensure the queue is empty before sending the command. 
             #This ensures that this is the next item in the queue when the hw process looks.
             flushVar = self.SWBQueue.get()
         self.SWBQueue.put('QUIT')
+        print('Waiting for hw driver process to join')
         self.hwScanProcess.join()
+        print('Stopping GUI and accepting close event')
         self.updateTimer.stop()
         event.accept()
 

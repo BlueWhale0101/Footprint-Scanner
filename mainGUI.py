@@ -156,21 +156,30 @@ class MainWindow(QMainWindow):
 
     def VHFScanMethod(self):
         if not self.configData['Sim']:
-            streamScan('30M:50M')
+            #streamScan('30M:50M')
+            scanWindowProcess = Process(target=startScanWindow, args=('30M:50M', ))
+            scanWindowProcess.start()
+            scanWindowProcess.join()
         else:
             #Sim is not implemented yet
             return    
 
     def FullScanMethod(self):
         if not self.configData['Sim']:
-            streamScan('30M:1.7G')
+            #streamScan('30M:1.7G')
+            scanWindowProcess = Process(target=startScanWindow, args=('30M:1.7G', ))
+            scanWindowProcess.start()
+            scanWindowProcess.join()
         else:
             #Sim is not implemented yet
             return
 
     def GPSScanMethod(self):
         if not self.configData['Sim']:
-            streamScan('1227590000:1227610000')
+            #streamScan('1227590000:1227610000')
+            scanWindowProcess = Process(target=startScanWindow, args=('1227590000:1227610000', ))
+            scanWindowProcess.start()
+            scanWindowProcess.join()
         else:
             #Sim is not implemented yet
             return
@@ -182,6 +191,10 @@ class MainWindow(QMainWindow):
         for each band, in dB. The difference between this value and the filtered value
         will later be used to determine whether anything unexpected is happening
         in the spectrum.
+
+        'rtl_power_fftw -f 30M:1.7G -b 500 -n 500 -g 100 -q'
+        frequency range is from 30 MHz to 1.7 GHz. 
+        Each fft bin is sampled 500 times.
         '''
         if takeBaselineMeasurement() == 'Error':
             self.msgBox = QMessageBox()

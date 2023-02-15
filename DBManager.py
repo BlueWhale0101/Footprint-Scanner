@@ -39,6 +39,7 @@ def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
             if pkt == 'Quit':
                 #This is a daemon function, so just killing it is fine. 
                 #However, gracefully shutting down is quite nice too. 
+                print('Logger got Quit')
                 return
             #Got data, get handle to DB
             with open_file(DB_Name, mode="a", title="EARS Measurements Record") as h5file:

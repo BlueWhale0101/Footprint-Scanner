@@ -140,11 +140,13 @@ def streamScan(cmdFreq = '30M:35M', SWBqueue=None):
         #Execute commands
         #Only one command right now - quit
         if currentCommand == 'QUIT':
+            print('ScanView got Quit')
             quitFlag = True
     #This executes after breaking out of the execution loop. It needs to clean us up.
     print('Closing logger...')
     logQueue.put('Quit')
     logger.join()    
+    return
 
 
 def streamScanTest(cmdFreq = '30M:35M'):
