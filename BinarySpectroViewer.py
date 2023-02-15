@@ -19,7 +19,7 @@ def processRFScan(scanData):
 def passToDbLogger(data, simFlag):
     global logQueue
     #pass data from subprocess
-    curTime = datetime.datetime.now().strftime("<%Y:%m:%d:%H:%M:%S")
+    curTime = datetime.datetime.now().strftime("%Y:%m:%d:%H:%M:%S")
     dataToPass = (curTime, data, simFlag)
     if logQueue.full():
         Warning('Log Buffer overflow. Dropping data.')
@@ -45,6 +45,7 @@ def takeBaselineMeasurement():
             return 'Error'
         else:
             #We need to just keep waiting to finish. This scan really does take awhile.
+            print('Still scanning....')
             sleep(.5)
     data = processRFScan(s.stdout)
     time = curTime = datetime.datetime.now().strftime("<%Y:%m:%d:%H:%M:%S")
@@ -145,7 +146,8 @@ def streamScan(cmdFreq = '30M:35M', SWBqueue=None):
     #This executes after breaking out of the execution loop. It needs to clean us up.
     print('Closing logger...')
     logQueue.put('Quit')
-    logger.join()    
+    #logger.join()    
+    SWBqueue.put('Done')
     return
 
 

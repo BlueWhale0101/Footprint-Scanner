@@ -13,6 +13,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from PyQt5.QtWidgets import QMainWindow, QAction, QMessageBox, QPushButton, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, QTimer
 import pandas as pd
+import datetime
 from BinarySpectroViewer import *
 from multiprocessing import Process, Queue
 
@@ -52,6 +53,7 @@ class EARSscanWindow(QMainWindow):
         self.powerGraph = MplCanvas(self)
         self.axesRef = self.powerGraph.figure.axes[0]
         self.powerGraph.figure.tight_layout()
+        self.updateCount = 0
         
         # call the update event This drives both the scanning calls and the graph updating
         # Set up the update function
@@ -98,15 +100,25 @@ class EARSscanWindow(QMainWindow):
 
         #check for an update in the queue
         if not self.SWBQueue.empty():
+            self.updateCount += 1
             #Got data in the queue
             df, maxDF, baseline = self.SWBQueue.get()
             #Clear axes
             self.axesRef.cla()
+            #Add time and number of updates annotation
+            curTime = datetime.datetime.now().strftime("%Y:%m:%d:%H:%M:%S")
+            curTimeUpdateText = 'Last update: ' + curTime
+            curUpdateText = 'Number of scans: ' + str(self.updateCount)
+            print(curUpdateText)
+            print(curTimeUpdateText)
+            self.axesRef.text(0.05, .95, curTimeUpdateText)
+            self.axesRef.text(0.05, .90, curUpdateText)
             #Plot our data
             maxDF.plot(ax=self.axesRef, x='freqCompare', y='power', style='y', linewidth = .5, label='max hold', grid='On', title = 'ScanView')
             df.plot(ax=self.axesRef, x='frequency', y='power', grid='On', title = 'ScanView', label='current', alpha = .7, linewidth = .5)
             self.axesRef.fill_between(df['frequency'], df['power'], df['power'].min(), alpha = .5)
             baseline.plot(ax=self.axesRef, x='frequency', y='power', style='r-.', linewidth=.3, alpha = .7)
+            
             #Draw and allow matplotlib to do plot update
             self.powerGraph.draw()
             matplotlib.pyplot.pause(.05)
@@ -127,9 +139,12 @@ class EARSscanWindow(QMainWindow):
             #This ensures that this is the next item in the queue when the hw process looks.
             flushVar = self.SWBQueue.get()
         self.SWBQueue.put('QUIT')
-        print('Waiting for hw driver process to join')
-        self.hwScanProcess.join()
-        print('Stopping GUI and accepting close event')
+        print('Closed the SWB Queue and hardware process.')
+        #self.hwScanProcess.join()
+        self.SWBQueue.get(block=True, timeout=30)
+        self.SWBQueue.close()
+        self.hwScanProcess.terminate()
+        print('Closed scan and queue')
         self.updateTimer.stop()
         event.accept()
 

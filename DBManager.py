@@ -40,6 +40,10 @@ def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
                 #This is a daemon function, so just killing it is fine. 
                 #However, gracefully shutting down is quite nice too. 
                 print('Logger got Quit')
+                #Flush the queue before ending
+                while not queue.empty():
+                    flush = queue.get()
+                queue.close()
                 return
             #Got data, get handle to DB
             with open_file(DB_Name, mode="a", title="EARS Measurements Record") as h5file:
@@ -148,11 +152,11 @@ def StoreBaselineData(pkt = None, queue=None, DB_Name="EARS_DB.h5"):
         h5file = open_file(DB_Name, mode="w", title="EARS Measurements Record")
     else:
         h5file = open_file(DB_Name, mode="a", title="EARS Measurements Record")
-    #Always running the create_group and create_table commands is intentional - we want to wipe out the old tables every time.
+    #We need to delete the old baseline data if it's there. just delete the group, start clean
+    if 'baseline' in str(h5file.list_nodes('/')):
+         h5file.remove_node('/baseline', recursive=True)
     group = h5file.create_group("/", 'baseline', 'RF Power baseline information')
     table = h5file.create_table(group, 'readout', RFMeasurements, "Baseline Record")
-    #table handles are retrieved from the file handle with the format file_handle.mount_point.group_handle.table_handle
-    table = h5file.root.baseline.readout
     measurement = table.row
         #table handles are retrieved from the file handle with the format file_handle.mount_point.group_handle.table_handle
     '''

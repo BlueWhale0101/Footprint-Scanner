@@ -149,7 +149,6 @@ class MainWindow(QMainWindow):
             '''
             scanWindowProcess = Process(target=startScanWindow, args=('225M:400M', ))
             scanWindowProcess.start()
-            scanWindowProcess.join()
         else:
             #Sim is not implemented yet
             return
@@ -159,7 +158,6 @@ class MainWindow(QMainWindow):
             #streamScan('30M:50M')
             scanWindowProcess = Process(target=startScanWindow, args=('30M:50M', ))
             scanWindowProcess.start()
-            scanWindowProcess.join()
         else:
             #Sim is not implemented yet
             return    
@@ -169,7 +167,6 @@ class MainWindow(QMainWindow):
             #streamScan('30M:1.7G')
             scanWindowProcess = Process(target=startScanWindow, args=('30M:1.7G', ))
             scanWindowProcess.start()
-            scanWindowProcess.join()
         else:
             #Sim is not implemented yet
             return
@@ -179,7 +176,6 @@ class MainWindow(QMainWindow):
             #streamScan('1227590000:1227610000')
             scanWindowProcess = Process(target=startScanWindow, args=('1227590000:1227610000', ))
             scanWindowProcess.start()
-            scanWindowProcess.join()
         else:
             #Sim is not implemented yet
             return
@@ -196,7 +192,18 @@ class MainWindow(QMainWindow):
         frequency range is from 30 MHz to 1.7 GHz. 
         Each fft bin is sampled 500 times.
         '''
+        #This takes forever, so Popup a message that the cal is starting.
+        print("starting Calibration")
+        self.msgBox = QMessageBox()
+        self.msgBox.setWindowTitle('Calibrating')
+        self.msgBox.setIcon(QMessageBox.Information)
+        self.msgBox.setText("Calibrating system...\nThis typically takes several minutes")
+        self.msgBox.setStandardButtons(QMessageBox.Ok)
+        self.statusBar().showMessage('Calibrating')
+        self.msgBox.exec()
+
         if takeBaselineMeasurement() == 'Error':
+            self.msgBox.close()
             self.msgBox = QMessageBox()
             self.msgBox.setWindowTitle('Error!')
             self.msgBox.setIcon(QMessageBox.Information)
@@ -205,6 +212,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage('Error Calibrating')
             self.msgBox.exec()
         else:
+            self.msgBox.close()
             #Popup a message that the cal was successful.
             print("succesfully performed Calibration")
             self.msgBox = QMessageBox()
