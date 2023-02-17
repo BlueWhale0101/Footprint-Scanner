@@ -128,7 +128,7 @@ def streamScan(cmdFreq = '30M:35M', SWBqueue=None):
         else:
             #not the first time. compare more discreet freqs by rounding
             #I basically don't care about the frequency column in maxDF, only the rounded one. 
-            maxDF.combine(df, maximum, overwrite = False)
+            maxDF = maxDF.combine(df, maximum, overwrite = False)
         #Check if there is a command for us in the queue.
         if not SWBqueue.empty():
             currentCommand = SWBqueue.get()
@@ -197,10 +197,12 @@ def streamScanTest(cmdFreq = '30M:35M'):
             else:
                 #We need to just keep waiting to finish. This scan really does take awhile.
                 sleep(.5)
+        import pdb
+        pdb.set_trace()
         data = processRFScan(s.stdout) #Process the bytes like object into the list of tuples we use for processing
         df = pd.DataFrame(data, columns=['frequency', 'power']) #revisit this later. Profiling showed this wasn't a big eater, but the dataframe class is way beefier than I need for just a plot
         threading.Thread(target=passToDbLogger, args=(data, simFlag)).start() #Go ahead and leave this in a different thread. This present thread should focus on processing the RF data        
-        
+
         #Got the new data - calculate max
         df['freqCompare'] = df['frequency'].round(0)
         df = df.set_index('freqCompare')
