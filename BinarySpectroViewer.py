@@ -197,8 +197,6 @@ def streamScanTest(cmdFreq = '30M:35M'):
             else:
                 #We need to just keep waiting to finish. This scan really does take awhile.
                 sleep(.5)
-        import pdb
-        pdb.set_trace()
         data = processRFScan(s.stdout) #Process the bytes like object into the list of tuples we use for processing
         df = pd.DataFrame(data, columns=['frequency', 'power']) #revisit this later. Profiling showed this wasn't a big eater, but the dataframe class is way beefier than I need for just a plot
         threading.Thread(target=passToDbLogger, args=(data, simFlag)).start() #Go ahead and leave this in a different thread. This present thread should focus on processing the RF data        

@@ -4,7 +4,7 @@ from time import sleep
 
 class RFMeasurements(IsDescription):
     #Define columns of our table
-    time      = StringCol(20)   # 16-character String
+    time      = StringCol(20)   # 20-character String
     frequency  = Float32Col()    # float  (single-precision)
     power  = Float32Col()    # float  (single-precision)
     simulated = BoolCol() #Boolean

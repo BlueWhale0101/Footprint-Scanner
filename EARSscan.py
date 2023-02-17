@@ -141,7 +141,7 @@ class EARSscanWindow(QMainWindow):
         self.SWBQueue.put('QUIT')
         print('Closed the SWB Queue and hardware process.')
         #self.hwScanProcess.join()
-        self.SWBQueue.get(block=True, timeout=30)
+        self.SWBQueue.get(block=True, timeout=300)
         self.SWBQueue.close()
         self.hwScanProcess.terminate()
         print('Closed scan and queue')
