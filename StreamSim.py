@@ -69,6 +69,7 @@ def genQuickAndDirtySimForWes(queue = None, scannedFreqRange='30M:35M', txCenter
     seperated by \n in the stdout of a response object. If the queue is provided, it will loop and 
     provide an object every second. Otherwise, it will just run once.'''
 
+    #This is using a hard coded peak power of 0 dB at the Rx, and a channel width of nearly 12.5kHz. 
     s = responseObject()
 
     #Figure out how long the array is. It's max freq - min freq, step size of 200 hz
@@ -78,9 +79,9 @@ def genQuickAndDirtySimForWes(queue = None, scannedFreqRange='30M:35M', txCenter
     txCenterFreqIndex =  txCenterFreqDiff.argmin() #This is the index of frequency at which the center freq of transmission is found
     power = np.ones(len(freqs)) * -70 + np.random.uniform(-2, 2, (1, len(freqs))) #baseline power is -70, with random noise between - and 2 db
     power = power[0]
-    TxDecay = np.power(np.e, (-1/350)*np.arange(0, 2200, 200))*35 #Exponential decay, peaking at 0 dB and decaying to -70 dB by 800 hz away for a total channel width of 1600 hz
-    power[txCenterFreqIndex:txCenterFreqIndex+11] = power[txCenterFreqIndex:txCenterFreqIndex+11] + TxDecay
-    power[txCenterFreqIndex-10:txCenterFreqIndex+1] = power[txCenterFreqIndex-10:txCenterFreqIndex+1] + np.flip(TxDecay)
+    TxDecay = np.power(np.e, (-1/1800)*np.arange(0, 6600, 200))*36-1 #Exponential decay, peaking at 0 dB and decaying to -70 dB by 6200 hz away for a total channel width of 12400 hz
+    power[txCenterFreqIndex:txCenterFreqIndex+33] = power[txCenterFreqIndex:txCenterFreqIndex+33] + TxDecay
+    power[txCenterFreqIndex-32:txCenterFreqIndex+1] = power[txCenterFreqIndex-32:txCenterFreqIndex+1] + np.flip(TxDecay) #Mirror the decay for the growth side
     data = list(zip(freqs, power))
     s.stdout = '\\n'.join([str(x)+' '+str(y) for x,y in data])
    
