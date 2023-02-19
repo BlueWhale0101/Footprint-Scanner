@@ -1,13 +1,31 @@
 from tables import *
+from numpy import datetime64
 import os
 from time import sleep
 
 class RFMeasurements(IsDescription):
-    #Define columns of our table
-    time      = StringCol(20)   # 20-character String
+    #Define columns of RF Power measurements table
+    #The seperate time component columns make it MUCH easier to query
+    year = Int32Col()
+    month = Int32Col()
+    day = Int32Col()
+    hour = Int32Col()
+    minute = Int32Col()
+    second = Int32Col()
     frequency  = Float32Col()    # float  (single-precision)
     power  = Float32Col()    # float  (single-precision)
     simulated = BoolCol() #Boolean
+
+class commandLog(IsDescription):
+    #Define columns of the command log
+    year = Int32Col()
+    month = Int32Col()
+    day = Int32Col()
+    hour = Int32Col()
+    minute = Int32Col()
+    second = Int32Col()
+    command = StringCol(100)
+    simulated = BoolCol()
 
 def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
     print("Starting Logger")
@@ -20,11 +38,17 @@ def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
         h5file = open_file(DB_Name, mode="w", title="EARS Measurements Record")
         group = h5file.create_group("/", 'measurement', 'RF Power information')
         table = h5file.create_table(group, 'readout', RFMeasurements, "Measurements Record")
+        cmdGroup = h5file.create_group("/", "Logs", 'System logging')
+        cmdTable = h5file.create_table(cmdGroup, 'commandLog', commandLog, "Command Log")
     with open_file(DB_Name, mode="a", title="EARS Measurements Record") as h5file:
-        #Check that the table has already been made. If not, make it. 
-        if not 'measurement' in str(h5file.list_nodes('/')):
+        #Check that the right tables have already been made. If not, make them. 
+        dbNodes = str(h5file.list_nodes('/'))
+        if not 'measurement' in dbNodes:
             group = h5file.create_group("/", 'measurement', 'RF Power information')
             table = h5file.create_table(group, 'readout', RFMeasurements, "Measurements Record")
+        if not 'Logs' in dbNodes:
+            cmdGroup = h5file.create_group("/", "Logs", 'System logging')
+            cmdTable = h5file.create_table(cmdGroup, 'commandLog', commandLog, "Command Log")
     while True:
         #Just keep going until the task is killed. If nothing is put in the queue, or if the queue is closed, 
         #this task should close the db file and close out. 
@@ -47,21 +71,51 @@ def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
                 return
             #Got data, get handle to DB
             with open_file(DB_Name, mode="a", title="EARS Measurements Record") as h5file:
-                #table handles are retrieved from the file handle with the format file_handle.mount_point.group_handle.table_handle
-                table = h5file.root.measurement.readout
-                measurement = table.row
-                '''
-                The expected format of these measurements is a tuple (time, data, simFlag) where time is a 20 char string
-                and data is a list of tuples containing (frequency, power). simFlag is a bool indicating whether 
-                this data was simulated.
-                '''
-                for reading in pkt[1]:
-                    measurement['time'] = pkt[0] #Should be a 20 char string
-                    measurement['frequency'] = reading[0]
-                    measurement['power'] = reading[1]
-                    measurement['simulated'] = pkt[2]
-                    measurement.append()
-                table.flush()
+                if pkt[3] == 'measurement':
+                    #table handles are retrieved from the file handle with the format file_handle.mount_point.group_handle.table_handle
+                    table = h5file.root.measurement.readout
+                    measurement = table.row
+                    '''
+                    The expected format of these measurements is a tuple (time, data, simFlag) where time is a 20 char string
+                    and data is a list of tuples containing (frequency, power). simFlag is a bool indicating whether 
+                    this data was simulated.
+                    '''
+                    #convert the time stamp into individual elements and save as ints
+                    time = pkt[0].split(':')
+                    year, month, day, hour, minute, second = (int(x) for x in time)
+
+                    for reading in pkt[1]:
+                        measurement['year'] = year
+                        measurement['month'] = month
+                        measurement['day'] = day
+                        measurement['hour'] = hour
+                        measurement['minute'] = minute
+                        measurement['second'] = second
+                        measurement['frequency'] = reading[0]
+                        measurement['power'] = reading[1]
+                        measurement['simulated'] = pkt[2]
+                        measurement.append()
+                    table.flush()
+                elif pkt[3] == 'command':
+                    table = h5file.root.Logs.commandLog
+                    command = table.row
+                    '''
+                    The expected format of these commands is (time, command string, simFlag)
+                    '''
+                    #convert the time stamp into individual elements and save as ints
+                    time = pkt[0].split(':')
+                    year, month, day, hour, minute, second = (int(x) for x in time)
+                    #Build row for table
+                    command['year'] = year
+                    command['month'] = month
+                    command['day'] = day
+                    command['hour'] = hour
+                    command['minute'] = minute
+                    command['second'] = second
+                    command['command'] = pkt[1]
+                    command['simulated'] = pkt[2]
+                    command.append()
+                    table.flush()
         else:
             #If there isn't anything in the queue, we can wait a pretty long time. 
             #This doesn't need to be very fast. 1Hz is plenty.
@@ -158,14 +212,23 @@ def StoreBaselineData(pkt = None, queue=None, DB_Name="EARS_DB.h5"):
     group = h5file.create_group("/", 'baseline', 'RF Power baseline information')
     table = h5file.create_table(group, 'readout', RFMeasurements, "Baseline Record")
     measurement = table.row
-        #table handles are retrieved from the file handle with the format file_handle.mount_point.group_handle.table_handle
+    #table handles are retrieved from the file handle with the format file_handle.mount_point.group_handle.table_handle
     '''
     The expected format of these measurements is a tuple (time, data, simFlag) where time is a 20 char string
     and data is a list of tuples containing (frequency, power). simFlag is a bool indicating whether 
     this data was simulated.
     '''
+    #convert the time stamp into individual elements and save as ints
+    time = pkt[0].split(':')
+    year, month, day, hour, minute, second = (int(x) for x in time)
+
     for reading in pkt[1]:
-        measurement['time'] = pkt[0] #Should be a 20 char string
+        measurement['year'] = year
+        measurement['month'] = month
+        measurement['day'] = day
+        measurement['hour'] = hour
+        measurement['minute'] = minute
+        measurement['second'] = second
         measurement['frequency'] = reading[0]
         measurement['power'] = reading[1]
         measurement['simulated'] = pkt[2]

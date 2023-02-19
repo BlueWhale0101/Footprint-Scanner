@@ -17,10 +17,11 @@ def processRFScan(scanData):
     return data
 
 def passToDbLogger(data, simFlag):
+    '''Passes data to the database manager for storing'''
     global logQueue
     #pass data from subprocess
     curTime = datetime.datetime.now().strftime("%Y:%m:%d:%H:%M:%S")
-    dataToPass = (curTime, data, simFlag)
+    dataToPass = (curTime, data, simFlag, 'measurement')
     if logQueue.full():
         Warning('Log Buffer overflow. Dropping data.')
         return 'Overflow Error'
@@ -28,6 +29,19 @@ def passToDbLogger(data, simFlag):
         logQueue.put(dataToPass)
         return 'Sucess'
 
+def passCmdToDbLogger(cmd, simFlag):
+    '''Passes command to the database manager for storing'''
+    global logQueue
+    #pass command
+    curTime = datetime.datetime.now().strftime("%Y:%m:%d:%H:%M:%S")
+    dataToPass = (curTime, cmd, simFlag, 'command')
+    if logQueue.full():
+        Warning('Log Buffer overflow. Dropping logged command: {}'.format(cmd))
+        return 'Overflow Error'
+    else:
+        logQueue.put(dataToPass)
+        return 'Sucess'
+    
 def takeBaselineMeasurement():
     '''
     Measure power across a very broad spectrum and return the results from the stdout output.
@@ -48,7 +62,7 @@ def takeBaselineMeasurement():
             print('Still scanning....')
             sleep(.5)
     data = processRFScan(s.stdout)
-    time = curTime = datetime.datetime.now().strftime("<%Y:%m:%d:%H:%M:%S")
+    time = curTime = datetime.datetime.now().strftime("%Y:%m:%d:%H:%M:%S")
     BLData = (time, data, simFlag)
     StoreBaselineData(pkt=BLData)
 
@@ -170,8 +184,10 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
     #Start up the logging thread
     logger = Process(target=DB_Logger, args=(logQueue,), daemon=True)
     logger.start()
-
-
+    #Log the start of the session
+    threading.Thread(target=passCmdToDbLogger, args=("Start Session", simFlag)).start()
+    #Log the command we are using
+    threading.Thread(target=passCmdToDbLogger, args=(cmd, simFlag)).start()
     #Get the baseline data
     #Figure out the numeric equivalent of our commanded freqs
     lowF, highF = convertFreqtoInt(cmdFreq)
@@ -185,7 +201,7 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
     maxDF = pd.DataFrame(columns=['frequency', 'power'])
 
     #Actual Scanning and displaying function
-    for i in range(3):
+    for i in range(100):
         print('Scan ', str(i))
         #Very lazy loop to see plot updates
         #I want to be able to see the data from the cmd when I want and not flood the screen.
@@ -230,6 +246,7 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
 
 
     input('Press Enter to continue...')
+    threading.Thread(target=passCmdToDbLogger, args=("End Session", simFlag)).start()
     print('Closing logger...')
     logQueue.put('Quit')
     logger.join()
