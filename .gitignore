@@ -37,6 +37,7 @@
 *.met
 *.bin
 *.hd5
+*.h5
 
 # OS generated files #
 ######################
