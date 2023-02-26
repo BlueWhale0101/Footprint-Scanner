@@ -1,29 +1,25 @@
 from tables import *
-from numpy import datetime64
 import os
 from time import sleep
+from uuid import uuid4
+
+sessionID = str(uuid4()) #This will be the unique session ID for this measurement session.
+    #For future analysis, we will want to grab all the data for a particular session. 
+    #TODO: Add a browser which shows a table with session ID, first time, and the command
+    #       which was used to start it. 
 
 class RFMeasurements(IsDescription):
     #Define columns of RF Power measurements table
-    #The seperate time component columns make it MUCH easier to query
-    year = Int32Col()
-    month = Int32Col()
-    day = Int32Col()
-    hour = Int32Col()
-    minute = Int32Col()
-    second = Int32Col()
+    sessionID = StringCol(36) #36 char string containing UUID for session
+    time = StringCol(20) #20 char string
     frequency  = Float32Col()    # float  (single-precision)
     power  = Float32Col()    # float  (single-precision)
     simulated = BoolCol() #Boolean
 
 class commandLog(IsDescription):
     #Define columns of the command log
-    year = Int32Col()
-    month = Int32Col()
-    day = Int32Col()
-    hour = Int32Col()
-    minute = Int32Col()
-    second = Int32Col()
+    sessionID = StringCol(36) #36 char string containing UUID for session
+    time = StringCol(20) #20 char string
     command = StringCol(100)
     simulated = BoolCol()
 
@@ -32,7 +28,7 @@ def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
     if not queue:
         Warning('No queue provided! Closing db manager.')
         return
-    
+    global sessionID
     if not os.path.isfile(DB_Name):
         #Check db file exists
         h5file = open_file(DB_Name, mode="w", title="EARS Measurements Record")
@@ -78,21 +74,14 @@ def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
                     '''
                     The expected format of these measurements is a tuple (time, data, simFlag) where time is a 20 char string
                     and data is a list of tuples containing (frequency, power). simFlag is a bool indicating whether 
-                    this data was simulated.
+                    this data was simulated. Session ID is a UUID which should uniquely identify the data from 
+                    a particular session.
                     '''
-                    #convert the time stamp into individual elements and save as ints
-                    time = pkt[0].split(':')
-                    year, month, day, hour, minute, second = (int(x) for x in time)
-
                     for reading in pkt[1]:
-                        measurement['year'] = year
-                        measurement['month'] = month
-                        measurement['day'] = day
-                        measurement['hour'] = hour
-                        measurement['minute'] = minute
-                        measurement['second'] = second
+                        measurement['time'] = pkt[0]
                         measurement['frequency'] = reading[0]
                         measurement['power'] = reading[1]
+                        measurement['sessionID'] = sessionID
                         measurement['simulated'] = pkt[2]
                         measurement.append()
                     table.flush()
@@ -102,18 +91,11 @@ def DB_Logger(queue=None, DB_Name="EARS_DB.h5"):
                     '''
                     The expected format of these commands is (time, command string, simFlag)
                     '''
-                    #convert the time stamp into individual elements and save as ints
-                    time = pkt[0].split(':')
-                    year, month, day, hour, minute, second = (int(x) for x in time)
                     #Build row for table
-                    command['year'] = year
-                    command['month'] = month
-                    command['day'] = day
-                    command['hour'] = hour
-                    command['minute'] = minute
-                    command['second'] = second
+                    command['time'] = pkt[0]
                     command['command'] = pkt[1]
                     command['simulated'] = pkt[2]
+                    command['sessionID'] = sessionID
                     command.append()
                     table.flush()
         else:
@@ -196,6 +178,7 @@ def StoreBaselineData(pkt = None, queue=None, DB_Name="EARS_DB.h5"):
     That's what I'm thinking right now. 
     '''
     print("Storing baseline data")
+    global sessionID
     if not queue and not pkt:
         Warning('No data or queue provided! Closing db.')
         return
@@ -218,19 +201,12 @@ def StoreBaselineData(pkt = None, queue=None, DB_Name="EARS_DB.h5"):
     and data is a list of tuples containing (frequency, power). simFlag is a bool indicating whether 
     this data was simulated.
     '''
-    #convert the time stamp into individual elements and save as ints
-    time = pkt[0].split(':')
-    year, month, day, hour, minute, second = (int(x) for x in time)
 
     for reading in pkt[1]:
-        measurement['year'] = year
-        measurement['month'] = month
-        measurement['day'] = day
-        measurement['hour'] = hour
-        measurement['minute'] = minute
-        measurement['second'] = second
+        measurement['time'] = pkt[0]
         measurement['frequency'] = reading[0]
         measurement['power'] = reading[1]
+        measurement['sessionID'] = sessionID
         measurement['simulated'] = pkt[2]
         measurement.append()
     table.flush()

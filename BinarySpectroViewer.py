@@ -201,7 +201,7 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
     maxDF = pd.DataFrame(columns=['frequency', 'power'])
 
     #Actual Scanning and displaying function
-    for i in range(100):
+    for i in range(10):
         print('Scan ', str(i))
         #Very lazy loop to see plot updates
         #I want to be able to see the data from the cmd when I want and not flood the screen.
