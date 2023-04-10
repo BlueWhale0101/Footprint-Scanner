@@ -1,14 +1,13 @@
 import shlex
 import subprocess as sb
 import matplotlib.pyplot as plt
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, set_start_method
 import threading
 from time import sleep
 import pandas as pd
 from DBManager import * 
 import datetime
 from numpy import maximum
-
 
 def processRFScan(scanData):
     data = str(scanData).strip().split('\\n')
@@ -72,6 +71,8 @@ def convertFreqtoInt(freqStr):
     '''commanded freqs typically use an easy to read notation with prefixes. 
     for example, cmdFreq = '30M:35M'
     This utility converts them into normal strings.
+    TODO: Is there a smart way to have this function accept floats for the prefix? 
+    as in, 1.2M = 1.2 * 1_000_000 = 1200000
     '''
     lowFreq, highFreq = freqStr.split(':')
     rep = [('M', '_000_000'), ('G', '_000_000_000'), ('K', '_000')]
@@ -80,7 +81,7 @@ def convertFreqtoInt(freqStr):
         highFreq = highFreq.replace(p, i)
     return (int(lowFreq), int(highFreq))
 
-def streamScan(cmdFreq = '30M:35M', SWBqueue=None):
+def streamScan(cmdFreq = '88M:100M', SWBqueue=None):
     '''
     given a commanded set of frequencies and a queue to control the process, 
     perform the following steps in a loop.
@@ -175,7 +176,8 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
     plt.style.use('dark_background')
     plt.grid(True)
     fig, ax = plt.subplots()
-    cmd = 'rtl_power_fftw -f {0} -b 500 -n 100 -g 100 -q'.format(cmdFreq)
+    #cmd = 'rtl_power_fftw -f {0} -b 500 -n 10 -g 32 -q'.format(cmdFreq)
+    cmd = 'rtl_power_fftw -f {0} -b 500 -n 10 -g 340'.format(cmdFreq)
     args = shlex.split(cmd)
     #Start our global logging queue, max size 25. Multiple processes and threads need this. 
     #I don't really expect it to get past 1 or 2, so this should be PLENTY.
@@ -201,7 +203,7 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
     maxDF = pd.DataFrame(columns=['frequency', 'power'])
 
     #Actual Scanning and displaying function
-    for i in range(10):
+    for i in range(3):
         print('Scan ', str(i))
         #Very lazy loop to see plot updates
         #I want to be able to see the data from the cmd when I want and not flood the screen.
@@ -218,6 +220,7 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
                     #We need to just keep waiting to finish. This scan really does take awhile.
                     sleep(.5)
         else:
+            #s = StreamSim.genFixedFreq(cmdFreq=cmdFreq, selectedFreq=32_000_000)
             s = StreamSim.genQuickAndDirtySimForWes(scannedFreqRange=cmdFreq)
         data = processRFScan(s.stdout) #Process the bytes like object into the list of tuples we use for processing
         df = pd.DataFrame(data, columns=['frequency', 'power']) #revisit this later. Profiling showed this wasn't a big eater, but the dataframe class is way beefier than I need for just a plot
@@ -232,7 +235,7 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
         else:
             #not the first time. compare more discreet freqs by rounding
             #I basically don't care about the frequency column in maxDF, only the rounded one. 
-            maxDF.combine(df, maximum, overwrite = False)
+            maxDF = maxDF.combine(df, maximum, overwrite = False)
 
 
         #Draw the new plots. We have to redraw all of them right now - probably not ideal.
@@ -240,7 +243,7 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
         maxDF.reset_index().plot(ax=ax, x='freqCompare', y='power', style='y', linewidth = .5, label='max hold', grid='On', title = 'ScanView')
         df.plot(ax=ax, x='frequency', y='power', grid='On', title = 'ScanView', label='current', alpha = .7, linewidth = .5)
         ax.fill_between(df['frequency'], df['power'], df['power'].min(), alpha = .5)
-        baseline.plot(ax=ax, x='frequency', y='power', style='r-.', linewidth=.3, alpha = .7)
+        baseline.plot(ax=ax, x='frequency', y='power', style='r-.', linewidth=.3, alpha = .7, label='baseline')
         plt.grid(True, color='w', linestyle=':', linewidth=.3)
         plt.pause(.1)
 
@@ -252,14 +255,20 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
     logger.join()
 
 if __name__ == '__main__':
-    #Check for baseline data
+    #Global multiprocessing setup, needs to be set at the start of the context definition
+    #This line is required for multiprocessing on linux specifically due to a nuance in 
+    #how the new processes are generated. Without it, calling bound C code (which we use
+    # in pytables) will get deadlocked.
+    set_start_method("spawn")
 
+    #Check for baseline data
     if not checkForBaselineData():
         #Get baseline data
         print('Generating baseline data. Sit tight...')
         takeBaselineMeasurement()
 
     #Call main function
+    #streamScan()
     #streamScanTest(cmdFreq= "31_900_000:32_100_000", \
     #               simFlag=True)
     streamScanTest(simFlag=True)

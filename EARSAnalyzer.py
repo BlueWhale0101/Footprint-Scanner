@@ -47,17 +47,18 @@ with open_file('EARS_DB.h5', mode="a", title="EARS Measurements Record") as h5fi
     # For our case, this is the session Id: b'2cb76486-67c4-4a44-a687-8b3057a703a4'
     #This has a simulated constant fixed frequency signal
     print('\n')
-    print("Using b'2cb76486-67c4-4a44-a687-8b3057a703a4'")
+    print("Using b'0f04cfdf-fe1c-4448-94e4-a89d7a48a662'")
     print('\n')
-    data = pd.DataFrame(dataTable.read_where('''(sessionID == b'2cb76486-67c4-4a44-a687-8b3057a703a4')'''))
+    data = pd.DataFrame(dataTable.read_where('''(sessionID == b'0f04cfdf-fe1c-4448-94e4-a89d7a48a662')'''))
     print(data)
     print('\n')
+
 #Now get the baseline data
 #Filter the baseline data to match the data we have
 blData = RetrieveBaselineData(freqMin = data['frequency'].min(), freqMax = data['frequency'].max())
 print('Baseline Data')
 bl = pd.DataFrame(blData, columns=['frequency', 'power'])
-bl = bl.set_index('frequency')
+#bl = bl.set_index('frequency')
 print(bl)
 print('\n\n')
 '''
@@ -74,29 +75,19 @@ There are a lot of ways of looking at this data...
 
 options 2 and 3 are conceptually similar but implementation very different. I think I would use
 opt 2 to think about HOW to look at the data, but implement a final solution using option 3.
-
-TODO: Figure out how to subtract the weird 'sensitivity spikes' that the RTL-SDR gives back
-from the data directly to pull out the key values. That is, remove the meaningless peaks every 2 MHz.
-This could be done by taking the baseline data from 30 to 32 MHz and subtracting that shape from 
-every 2Mhz section
-
-OK CLEARLY the way to do this is by making a model of the behavior of the rtl and then dealing with THAT
-that is, use np.polynomial.chebyshev to make a Chebyshev object, then subtract that 
-
-eg. use 30MHz - 32MHz as the baseline, the below is the conceptual steps
-C = np.polynomial.Chebyshev.fit(data.index, data.power, deg=5) #Not sure what degree needs to be
-nextDataChunkLen = len(32 < data.index < 34)
-hardware_baseline = C.linspace(nextDataChunkLen) 
-data[32 < data.index < 34][power] - hardware_baseline
-
 '''
-#Group data by frequency and 
+fig, ax = plt.subplots()
+data.plot(ax=ax, x='frequency', y='power')
+bl.plot(ax=ax, y='power')
+#Group data by frequency
 groupedData = data[['frequency', 'power']].groupby('frequency')
 #take the difference between the baseline data and our data
 filteredData = groupedData.max().combine(bl, np.subtract, overwrite = False)
 #interpolate between points. baseline has a lot less points then the measurement, so we end up with a lot of NANs
 filteredData = filteredData.interpolate()
 filteredData.plot(grid='on').figure.show()
+plt.pause(.1)
+
 
 
 
