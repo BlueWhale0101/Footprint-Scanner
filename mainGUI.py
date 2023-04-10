@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import QMainWindow, QDialog, QDialogButtonBox, QCheckBox, Q
 import sys
 import os.path
 from BinarySpectroViewer import *
+from multiprocessing import set_start_method
 from EARSscan import *
 
 class confirmDialog(QDialog):
@@ -243,6 +244,12 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
+    #Global multiprocessing setup, needs to be set at the start of the context definition
+    #This line is required for multiprocessing on linux specifically due to a nuance in 
+    #how the new processes are generated. Without it, calling bound C code (which we use
+    # in pytables) will get deadlocked.
+    set_start_method("spawn")
+
     app = QApplication(sys.argv)
     mainWindow = MainWindow()
     #Start the application
