@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 import pickle
 import os.path
 from BinarySpectroViewer import *
+from multiprocessing import set_start_method
 from EARSscan import *
 
 ''' Let's set globals up here for any formatting that will be used across all pages'''
@@ -322,6 +323,11 @@ class MainWindow(QWidget):
 
 
 if __name__ == '__main__':
+    #Global multiprocessing setup, needs to be set at the start of the context definition
+    #This line is required for multiprocessing on linux specifically due to a nuance in 
+    #how the new processes are generated. Without it, calling bound C code (which we use
+    # in pytables) will get deadlocked.
+    set_start_method("spawn")
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
