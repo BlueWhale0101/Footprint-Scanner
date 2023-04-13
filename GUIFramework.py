@@ -176,6 +176,8 @@ class MainWidget(QMainWindow):
         self.layout1_1 = QVBoxLayout()
         self.backButton1_1 = QPushButton('Back')
         self.label1_1 = QLabel('This is the 1.1 widget')
+        self.scanbutton = QPushButton('Scan')
+        self.layout1_1.addWidget(self.scanbutton)
         self.layout1_1.addWidget(self.backButton1_1)
         self.layout1_1.addWidget(self.label1_1)
         self.widget1_1.setLayout(self.layout1_1)
@@ -184,12 +186,15 @@ class MainWidget(QMainWindow):
 
         # set connections for buttons
         self.backButton1_1.clicked.connect(self.openSimulatedScanWidget)
+        self.scanbutton.clicked.connect(self.fixedFrequencyScanMethod)
 
     def openFreqHoppingWidget(self):
         self.widget2_1 = QWidget()
         self.layout2_1 = QVBoxLayout()
         self.backButton2_1 = QPushButton('Back')
         self.label2_1 = QLabel('This is the 2.1 widget')
+        self.scanbutton = QPushButton('Scan')
+        self.layout2_1.addWidget(self.scanbutton)
         self.layout2_1.addWidget(self.backButton2_1)
         self.layout2_1.addWidget(self.label2_1)
         self.widget2_1.setLayout(self.layout2_1)
@@ -198,12 +203,15 @@ class MainWidget(QMainWindow):
 
         # set connections for buttons
         self.backButton2_1.clicked.connect(self.openSimulatedScanWidget)
+        self.scanbutton.clicked.connect(self.frequencyHoppingScanMethod)
 
     def openWidebandTransmissionWidget(self):
         self.widget3_1 = QWidget()
         self.layout3_1 = QVBoxLayout()
         self.backButton3_1 = QPushButton('Back')
         self.label3_1 = QLabel('This is the 3.1 widget')
+        self.scanbutton = QPushButton('Scan')
+        self.layout3_1.addWidget(self.scanbutton)
         self.layout3_1.addWidget(self.backButton3_1)
         self.layout3_1.addWidget(self.label3_1)
         self.widget3_1.setLayout(self.layout3_1)
@@ -212,6 +220,7 @@ class MainWidget(QMainWindow):
 
         # set connections for buttons
         self.backButton3_1.clicked.connect(self.openSimulatedScanWidget)
+        self.scanbutton.clicked.connect(self.widebandTransmissionScanMethod)
 
     def openMainWidget(self):
         self.stackLayout.setCurrentWidget(self)
@@ -247,15 +256,20 @@ class MainWidget(QMainWindow):
     
     def fixedFrequencyScanMethod(self):
         '''TODO'''
-        return
+        scanWindowProcess = Process(target=startScanWindow, args=('30M:1.7G', ))
+        scanWindowProcess.start()
+        
     
     def frequencyHoppingScanMethod(self):
         '''TODO'''
-        return
+        scanWindowProcess = Process(target=startScanWindow, args=('30M:1.7G', ))
+        scanWindowProcess.start()
+        
     
     def widebandTransmissionScanMethod(self):
         '''TODO'''
-        return
+        scanWindowProcess = Process(target=startScanWindow, args=('300M:1.7G', ))
+        scanWindowProcess.start()
 
     def calibrateMethod(self):
         '''TODO: This should be revisited in the case we want to handle the calibration method 
