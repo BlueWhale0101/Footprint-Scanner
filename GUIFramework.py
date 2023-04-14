@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QStackedLayout, QTextEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QStackedLayout, QTextEdit, QSizePolicy
 from PyQt5.QtCore import Qt
 import pickle
 import os.path
@@ -8,12 +8,31 @@ from multiprocessing import set_start_method
 from EARSscan import *
 
 ''' Let's set globals up here for any formatting that will be used across all pages'''
-ButtonStyleSheet = "QPushButton{ border-radius:8px;\
+ButtonStyleSheet = """
+                    QPushButton{ border-radius:8px;\
                             border: 1px solid;\
-                            font-size: 14pt; font-weight: bold; \
+                            font-size: 20pt; font-weight: bold; \
                             background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, \
                             stop: 0 #ccd9ff, stop: 1 #2b50bd); }\
-                            QPushButton:pressed {background-color: #fae22d}"
+                            QPushButton:pressed {background-color: #fae22d}
+
+                    QPushButton:hover {
+                            background-color: #C0C0C0; /* set the background color on hover */
+                            border: 2px solid #fae22d; /* set the border on hover */
+                            padding: 5px;}
+                    """
+BackButtonStyleSheet = """
+                    QPushButton{font-size: 14pt; \
+                        font-weight: bold; \
+                        border: 2px solid gray; \
+                        border-radius: 10px; \
+                        background-color: white;}
+
+                    QPushButton:hover {
+                        background-color: #C0C0C0; /* set the background color on hover */
+                            border: 2px solid #fae22d; /* set the border on hover */
+                            padding: 5px;}
+                    """
 BackgroundStyle = "background-color: black;"
 
 class MainWidget(QMainWindow):
@@ -21,13 +40,6 @@ class MainWidget(QMainWindow):
         super().__init__()
 
     # Set up main window properties
-
-        # set title for main window
-        self.setWindowTitle("E.A.R.")
-
-        ''' TODO: make everything scale correctly based on screen size while maintaining relative sixes between layouts.
-        Ex. The buttons of the left layout should be the same width as the recent scans area on the right no matter screen size'''
-        # self.setWindowState(Qt.WindowMaximized)
 
         # changing the background color to black
         self.setStyleSheet(BackgroundStyle)
@@ -50,10 +62,9 @@ class MainWidget(QMainWindow):
         self.MainButtons = [self.quick_scan_button, self.toggle_scan_button, self.simulated_scan_button, self.calibration_button]
 
         for button in self.MainButtons:
-            button.setFixedSize(500, 100)
             button.setFlat(True)
             button.setStyleSheet(ButtonStyleSheet)
-            #button.setStyleSheet("font-size: 14pt; font-weight: bold; border: 2px solid gray;border-radius: 10px; background-color: white;")
+            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Add buttons to left layout
         for button in self.MainButtons:
@@ -70,11 +81,10 @@ class MainWidget(QMainWindow):
         opened and viewed. Maybe someday have a sort of comparison feature for comparing scans'''
         self.alerts_text = QTextEdit()
         self.alerts_text.setReadOnly(True)
-        self.alerts_text.setFixedSize(500, 400)
         self.alerts_text.setStyleSheet("border: 2px solid; border-radius: 10px; background-color: white;")
         self.alerts_header = QLabel("Recent Scans")
         self.alerts_header.setAlignment(Qt.AlignCenter)
-        self.alerts_header.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        self.alerts_header.setStyleSheet("font-size: 20pt; font-weight: bold; color: white;")
 
         # Add alerts header and text to right layout
         self.right_layout.addWidget(self.alerts_header)
@@ -83,6 +93,10 @@ class MainWidget(QMainWindow):
         # Add left and right widgets to central layout
         self.central_layout.addWidget(self.left_widget)
         self.central_layout.addWidget(self.right_widget)
+
+        # Set the stretch factors of the left and right layouts within central layout so that they're equal width
+        self.central_layout.setStretch(0, 1)
+        self.central_layout.setStretch(1, 1)
 
         # Set central widget
         self.setCentralWidget(self.central_widget)
@@ -107,12 +121,11 @@ class MainWidget(QMainWindow):
         self.GPSScanButton = QPushButton('GPS Scan')
         self.quickScanButtons = [self.VHFButton, self.UHFButton, self.FullScanButton, self.GPSScanButton]
         for button in self.quickScanButtons:
-            button.setFixedSize(500, 100)
             button.setFlat(True)
+            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             button.setStyleSheet(ButtonStyleSheet)
-            #button.setStyleSheet("font-size: 14pt; font-weight: bold; border: 2px solid gray;border-radius: 10px; background-color: white;")
-            self.quickScanLayout.addWidget(button, alignment=Qt.AlignCenter)
-        self.quickScanBackButton.setStyleSheet("font-size: 14pt; font-weight: bold; border: 2px solid gray;border-radius: 10px; background-color: white;")
+            self.quickScanLayout.addWidget(button)
+        self.quickScanBackButton.setStyleSheet(BackButtonStyleSheet)
         self.quickScanLayout.addWidget(self.quickScanBackButton)
         self.quickScanWidget.setLayout(self.quickScanLayout)
         self.stackLayout.addWidget(self.quickScanWidget)
@@ -132,7 +145,7 @@ class MainWidget(QMainWindow):
         self.toggleScanBackButton = QPushButton('Back')
         '''TODO: Need to setup input fields for taking specifics of requested scan, frequency range for example,
         need to setup process for calling this scan as well, if it's just frequency as an input then should be easy '''
-        self.toggleScanBackButton.setStyleSheet("font-size: 14pt; font-weight: bold; border: 2px solid gray;border-radius: 10px; background-color: white;")
+        self.toggleScanBackButton.setStyleSheet(BackButtonStyleSheet)
         self.toggleScanLayout.addWidget(self.toggleScanBackButton)
         self.toggleScanWidget.setLayout(self.toggleScanLayout)
         self.stackLayout.addWidget(self.toggleScanWidget)
@@ -151,12 +164,11 @@ class MainWidget(QMainWindow):
         self.widebandTransmissionScanButton = QPushButton('Wideband Transmission Scan')
         self.simScanButtons = [self.fixedFrequencyScanButton, self.frequencyHoppingScanButton, self.widebandTransmissionScanButton]
         for button in self.simScanButtons:
-            button.setFixedSize(500, 100)
             button.setFlat(True)
+            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             button.setStyleSheet(ButtonStyleSheet)
-            #button.setStyleSheet("font-size: 14pt; font-weight: bold; border: 2px solid gray;border-radius: 10px; background-color: white;")
-            self.simScanLayout.addWidget(button, alignment=Qt.AlignCenter)
-        self.simScanBackButton.setStyleSheet("font-size: 14pt; font-weight: bold; border: 2px solid gray;border-radius: 10px; background-color: white;")
+            self.simScanLayout.addWidget(button)
+        self.simScanBackButton.setStyleSheet(BackButtonStyleSheet)
         self.simScanLayout.addWidget(self.simScanBackButton)
         self.simulatedScanWidget.setLayout(self.simScanLayout)
         self.stackLayout.addWidget(self.simulatedScanWidget)
@@ -222,11 +234,16 @@ class MainWidget(QMainWindow):
         self.backButton3_1.clicked.connect(self.openSimulatedScanWidget)
         self.scanbutton.clicked.connect(self.widebandTransmissionScanMethod)
 
+    def openPlottingWidget(self):
+        '''TODO'''
+        return
+    
+    '''TODO: Need to figure out how errors and updates will be handled with new button scheme
+    whether with popups or integrating alert section into pages'''
+
     def openMainWidget(self):
         self.stackLayout.setCurrentWidget(self)
 
-    ''' TODO: Decide if we should migrate from using seperate pop up pages for graphing to instead using
-    dedicated widgets that don't allow overlap'''
 
     def VHFScanMethod(self):
         scanWindowProcess = Process(target=startScanWindow, args=('30M:50M', ))
@@ -256,19 +273,19 @@ class MainWidget(QMainWindow):
     
     def fixedFrequencyScanMethod(self):
         '''TODO'''
-        scanWindowProcess = Process(target=startScanWindow, args=('30M:1.7G', ))
+        scanWindowProcess = Process(target=startScanWindow, args=('30M:1G', ))
         scanWindowProcess.start()
         
     
     def frequencyHoppingScanMethod(self):
         '''TODO'''
-        scanWindowProcess = Process(target=startScanWindow, args=('30M:1.7G', ))
+        scanWindowProcess = Process(target=startScanWindow, args=('30M:1G', ))
         scanWindowProcess.start()
         
     
     def widebandTransmissionScanMethod(self):
         '''TODO'''
-        scanWindowProcess = Process(target=startScanWindow, args=('300M:1.7G', ))
+        scanWindowProcess = Process(target=startScanWindow, args=('300M:1G', ))
         scanWindowProcess.start()
 
     def calibrateMethod(self):
@@ -334,6 +351,9 @@ class MainWindow(QWidget):
 
         # set layout
         self.setLayout(self.stackLayout)
+
+        self.setWindowTitle('Tactical Footprint Scanner')
+        self.showMaximized()
 
 
 if __name__ == '__main__':
