@@ -690,8 +690,8 @@ class MainWindow(QWidget):
         self.setLayout(self.stackLayout)
 
         self.setWindowTitle('Tactical Footprint Scanner')
-        #self.showMaximized()
-        self.resize(800, 480)  # Replace the width and height values as needed
+        self.showMaximized()
+        #self.resize(800, 480)  # Replace the width and height values for testing what GUI looks like on PI screen
 
 
 
