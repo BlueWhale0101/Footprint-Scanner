@@ -44,7 +44,7 @@ BackButtonStyleSheet = """
 BackgroundStyle = "background-color: black;"
 InputFieldStyleSheet = """ 
                     QLineEdit{ font: bold; \
-                        font-size: 12pt; \
+                        font-size: 10pt; \
                         color: white; \
                         text-align: center;}
 
@@ -61,6 +61,8 @@ LabelStyleSheet = '''
                         font-weight: bold;
                     }
                 '''
+SubPageHeaderStyleSheet = '''font-size: 15pt; font-weight: bold; color: white;'''
+SubPageInfoStyleSheet = '''font-size: 10pt; font-weight: bold; color: white;'''
 
 
 class MainWidget(QMainWindow):
@@ -174,9 +176,9 @@ class MainWidget(QMainWindow):
         self.ToggleScanCentral_Layout = QVBoxLayout()
 
         # Add the header label
-        self.ToggleScan_header = QLabel("Toggle\nScan")
+        self.ToggleScan_header = QLabel("Toggle Scan")
         self.ToggleScan_header.setAlignment(Qt.AlignCenter)
-        self.ToggleScan_header.setStyleSheet("font-size: 25pt; font-weight: bold; color: white;")
+        self.ToggleScan_header.setStyleSheet(SubPageHeaderStyleSheet)
         self.ToggleScanCentral_Layout.addWidget(self.ToggleScan_header)
 
         # Add the input fields
@@ -189,8 +191,8 @@ class MainWidget(QMainWindow):
         self.ToggleScaninput_field1.setPlaceholderText("20M")
         self.ToggleScaninput_field1.setStyleSheet(InputFieldStyleSheet)
         self.ToggleScaninput_field1.setAlignment(Qt.AlignCenter)
-        self.ToggleScaninput_field1.setFixedWidth(300)
-        self.ToggleScaninput_field1.setFixedHeight(50)
+        self.ToggleScaninput_field1.setFixedWidth(200)
+        self.ToggleScaninput_field1.setFixedHeight(40)
         self.ToggleScaninput_field1.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
         self.ToggleScaninput_field1_Layout.addWidget(self.ToggleScaninput_label1)
         self.ToggleScaninput_field1_Layout.addWidget(self.ToggleScaninput_field1, alignment=Qt.AlignCenter)
@@ -203,8 +205,8 @@ class MainWidget(QMainWindow):
         self.ToggleScaninput_field2.setPlaceholderText("80M")
         self.ToggleScaninput_field2.setStyleSheet(InputFieldStyleSheet)
         self.ToggleScaninput_field2.setAlignment(Qt.AlignCenter)
-        self.ToggleScaninput_field2.setFixedWidth(300)
-        self.ToggleScaninput_field2.setFixedHeight(50)
+        self.ToggleScaninput_field2.setFixedWidth(200)
+        self.ToggleScaninput_field2.setFixedHeight(40)
         self.ToggleScaninput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
         self.ToggleScaninput_field2_Layout.addWidget(self.ToggleScaninput_label2)
         self.ToggleScaninput_field2_Layout.addWidget(self.ToggleScaninput_field2, alignment=Qt.AlignCenter)
@@ -217,13 +219,13 @@ class MainWidget(QMainWindow):
         self.ToggleScanScanButton = QPushButton('Scan')
         self.ToggleScanScanButton.setStyleSheet(ButtonStyleSheet)
         self.ToggleScanScanButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.ToggleScanScanButton.setFixedHeight(75)
+        self.ToggleScanScanButton.setFixedHeight(60)
         self.ToggleScanCentral_Layout.addWidget(self.ToggleScanScanButton)
 
         # Add the info label
         self.ToggleScan_Info = QLabel("""This scan allows you to toggle the frequency range of the scan by choosing minumum and maximum frequency values. Please enter values in the format of 60M for 60 MHz.""")
         self.ToggleScan_Info.setAlignment(Qt.AlignCenter)
-        self.ToggleScan_Info.setStyleSheet("font-size: 15pt; font-weight: bold; color: white;")
+        self.ToggleScan_Info.setStyleSheet(SubPageInfoStyleSheet)
         self.ToggleScan_Info.setWordWrap(True)
         self.ToggleScan_Info.setFixedWidth(600)
         self.ToggleScanCentral_Layout.addWidget(self.ToggleScan_Info, alignment=Qt.AlignHCenter)
@@ -279,9 +281,9 @@ class MainWidget(QMainWindow):
         self.FixFreqCentral_Layout = QVBoxLayout()
 
         # Add the header label
-        self.FixFreq_header = QLabel("Fixed Frequency\nSimulation")
+        self.FixFreq_header = QLabel("Fixed Frequency Simulation")
         self.FixFreq_header.setAlignment(Qt.AlignCenter)
-        self.FixFreq_header.setStyleSheet("font-size: 25pt; font-weight: bold; color: white;")
+        self.FixFreq_header.setStyleSheet(SubPageHeaderStyleSheet)
         self.FixFreqCentral_Layout.addWidget(self.FixFreq_header)
 
         # Add the input fields
@@ -294,8 +296,8 @@ class MainWidget(QMainWindow):
         self.FixFreqinput_field1.setPlaceholderText("60 MHz")
         self.FixFreqinput_field1.setStyleSheet(InputFieldStyleSheet)
         self.FixFreqinput_field1.setAlignment(Qt.AlignCenter)
-        self.FixFreqinput_field1.setFixedWidth(300)
-        self.FixFreqinput_field1.setFixedHeight(50)
+        self.FixFreqinput_field1.setFixedWidth(200)
+        self.FixFreqinput_field1.setFixedHeight(40)
         self.FixFreqinput_field1.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
         self.FixFreqinput_field1_Layout.addWidget(self.FixFreqinput_label1)
         self.FixFreqinput_field1_Layout.addWidget(self.FixFreqinput_field1, alignment=Qt.AlignCenter)
@@ -308,8 +310,8 @@ class MainWidget(QMainWindow):
         self.FixFreqinput_field2.setPlaceholderText("-30 dBm")
         self.FixFreqinput_field2.setStyleSheet(InputFieldStyleSheet)
         self.FixFreqinput_field2.setAlignment(Qt.AlignCenter)
-        self.FixFreqinput_field2.setFixedWidth(300)
-        self.FixFreqinput_field2.setFixedHeight(50)
+        self.FixFreqinput_field2.setFixedWidth(200)
+        self.FixFreqinput_field2.setFixedHeight(40)
         self.FixFreqinput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
         self.FixFreqinput_field2_Layout.addWidget(self.FixFreqinput_label2)
         self.FixFreqinput_field2_Layout.addWidget(self.FixFreqinput_field2, alignment=Qt.AlignCenter)
@@ -322,15 +324,15 @@ class MainWidget(QMainWindow):
         self.FixFreqScanButton = QPushButton('Scan')
         self.FixFreqScanButton.setStyleSheet(ButtonStyleSheet)
         self.FixFreqScanButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.FixFreqScanButton.setFixedHeight(75)
+        self.FixFreqScanButton.setFixedHeight(60)
         self.FixFreqCentral_Layout.addWidget(self.FixFreqScanButton)
 
         # Add the info label
         self.FixFreq_Info = QLabel("""This scan simulation generates a fixed frequency transmission with power centered on the selected frequency. The default behavior is to select a random center frequency and random power if values are left blank. Inputted frequencies must be between 50 MHz and 6 GHz. Inputted powers must be between -30 dBm and 30 dBm. Enter frequency in the form of 60M for 60 MHz. Enter power in the form of -30 for -30 dBm.""")
         self.FixFreq_Info.setAlignment(Qt.AlignCenter)
-        self.FixFreq_Info.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        self.FixFreq_Info.setStyleSheet(SubPageInfoStyleSheet)
         self.FixFreq_Info.setWordWrap(True)
-        self.FixFreq_Info.setFixedWidth(900)
+        self.FixFreq_Info.setFixedWidth(750)
         self.FixFreqCentral_Layout.addWidget(self.FixFreq_Info, alignment=Qt.AlignHCenter)
 
         # Add the back button
@@ -359,7 +361,7 @@ class MainWidget(QMainWindow):
         # Add the header label
         self.FreqHop_header = QLabel("Frequency Hopping\nSimulation")
         self.FreqHop_header.setAlignment(Qt.AlignCenter)
-        self.FreqHop_header.setStyleSheet("font-size: 25pt; font-weight: bold; color: white;")
+        self.FreqHop_header.setStyleSheet(SubPageHeaderStyleSheet)
         self.FreqHopCentral_Layout.addWidget(self.FreqHop_header)
 
         # Add the input fields
@@ -372,8 +374,8 @@ class MainWidget(QMainWindow):
         self.FreqHopinput_field1.setPlaceholderText("5 Sec")
         self.FreqHopinput_field1.setStyleSheet(InputFieldStyleSheet)
         self.FreqHopinput_field1.setAlignment(Qt.AlignCenter)
-        self.FreqHopinput_field1.setFixedWidth(300)
-        self.FreqHopinput_field1.setFixedHeight(50)
+        self.FreqHopinput_field1.setFixedWidth(200)
+        self.FreqHopinput_field1.setFixedHeight(40)
         self.FreqHopinput_field1.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
         self.FreqHopinput_field1_Layout.addWidget(self.FreqHopinput_label1)
         self.FreqHopinput_field1_Layout.addWidget(self.FreqHopinput_field1, alignment=Qt.AlignCenter)
@@ -386,8 +388,8 @@ class MainWidget(QMainWindow):
         self.FreqHopinput_field2.setPlaceholderText("-30 dBm")
         self.FreqHopinput_field2.setStyleSheet(InputFieldStyleSheet)
         self.FreqHopinput_field2.setAlignment(Qt.AlignCenter)
-        self.FreqHopinput_field2.setFixedWidth(300)
-        self.FreqHopinput_field2.setFixedHeight(50)
+        self.FreqHopinput_field2.setFixedWidth(200)
+        self.FreqHopinput_field2.setFixedHeight(40)
         self.FreqHopinput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
         self.FreqHopinput_field2_Layout.addWidget(self.FreqHopinput_label2)
         self.FreqHopinput_field2_Layout.addWidget(self.FreqHopinput_field2, alignment=Qt.AlignCenter)
@@ -400,15 +402,15 @@ class MainWidget(QMainWindow):
         self.FreqHopScanButton = QPushButton('Scan')
         self.FreqHopScanButton.setStyleSheet(ButtonStyleSheet)
         self.FreqHopScanButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.FreqHopScanButton.setFixedHeight(75)
+        self.FreqHopScanButton.setFixedHeight(60)
         self.FreqHopCentral_Layout.addWidget(self.FreqHopScanButton)
 
         # Add the info label
         self.FreqHop_Info = QLabel("""Generates a frequency hopping transmission simulation with the high power center moving to a new frequency every period of hop duration in seconds. If hop duration or power is not provided, a random value within the proper parameters is chosen.""")
         self.FreqHop_Info.setAlignment(Qt.AlignCenter)
-        self.FreqHop_Info.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        self.FreqHop_Info.setStyleSheet(SubPageInfoStyleSheet)
         self.FreqHop_Info.setWordWrap(True)
-        self.FreqHop_Info.setFixedWidth(900)
+        self.FreqHop_Info.setFixedWidth(750)
         self.FreqHopCentral_Layout.addWidget(self.FreqHop_Info, alignment=Qt.AlignHCenter)
 
         # Add the back button
@@ -437,7 +439,7 @@ class MainWidget(QMainWindow):
         # Add the header label
         self.Wideband_header = QLabel("Wideband Transmission\nSimulation")
         self.Wideband_header.setAlignment(Qt.AlignCenter)
-        self.Wideband_header.setStyleSheet("font-size: 25pt; font-weight: bold; color: white;")
+        self.Wideband_header.setStyleSheet(SubPageHeaderStyleSheet)
         self.WidebandCentral_Layout.addWidget(self.Wideband_header)
 
         # Add the input fields
@@ -457,7 +459,7 @@ class MainWidget(QMainWindow):
             field.setStyleSheet(InputFieldStyleSheet)
             field.setAlignment(Qt.AlignCenter)
             field.setFixedWidth(150)
-            field.setFixedHeight(50)
+            field.setFixedHeight(40)
             field.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
             self.Widebandinput_field1_Layout.addWidget(field, alignment=Qt.AlignCenter)
         self.Widebandinput_field1_1.setPlaceholderText("20 MHz")
@@ -474,8 +476,8 @@ class MainWidget(QMainWindow):
         self.Widebandinput_field2.setPlaceholderText("-30 dBm")
         self.Widebandinput_field2.setStyleSheet(InputFieldStyleSheet)
         self.Widebandinput_field2.setAlignment(Qt.AlignCenter)
-        self.Widebandinput_field2.setFixedWidth(300)
-        self.Widebandinput_field2.setFixedHeight(50)
+        self.Widebandinput_field2.setFixedWidth(200)
+        self.Widebandinput_field2.setFixedHeight(40)
         self.Widebandinput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
         self.Widebandinput_field2_Layout.addWidget(self.Widebandinput_label2)
         self.Widebandinput_field2_Layout.addWidget(self.Widebandinput_field2, alignment=Qt.AlignCenter)
@@ -488,15 +490,15 @@ class MainWidget(QMainWindow):
         self.WidebandScanButton = QPushButton('Scan')
         self.WidebandScanButton.setStyleSheet(ButtonStyleSheet)
         self.WidebandScanButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.WidebandScanButton.setFixedHeight(75)
+        self.WidebandScanButton.setFixedHeight(60)
         self.WidebandCentral_Layout.addWidget(self.WidebandScanButton)
 
         # Add the info label
         self.Wideband_Info = QLabel("""Generates wideband transmission simulation with 4 channels centered at selected frequencies with selected center power. The default behavior is to select 4 random center frequencies between 300M to 1.7G at randomly selected center powers.""")
         self.Wideband_Info.setAlignment(Qt.AlignCenter)
-        self.Wideband_Info.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        self.Wideband_Info.setStyleSheet(SubPageInfoStyleSheet)
         self.Wideband_Info.setWordWrap(True)
-        self.Wideband_Info.setFixedWidth(900)
+        self.Wideband_Info.setFixedWidth(750)
         self.WidebandCentral_Layout.addWidget(self.Wideband_Info, alignment=Qt.AlignHCenter)
 
         # Add the back button
@@ -688,7 +690,9 @@ class MainWindow(QWidget):
         self.setLayout(self.stackLayout)
 
         self.setWindowTitle('Tactical Footprint Scanner')
-        self.showMaximized()
+        #self.showMaximized()
+        self.resize(800, 480)  # Replace the width and height values as needed
+
 
 
 if __name__ == '__main__':
