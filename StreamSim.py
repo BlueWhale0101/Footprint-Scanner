@@ -175,7 +175,7 @@ def genFreqHopping(queue = None, power=0, hopDuration=0, snr=10, totalDuration=1
 import numpy as np
 import random
 
-def genWidebandTransmission(queue = None, channels=[0, 0, 0, 0], power=[0,0,0,0], cmdFreq = '300M, 1.7G'):
+def genWidebandTransmission(queue = None, channels=[0, 0, 0, 0], power=[0,0,0,0], cmdFreq = '300M, 1.7G', snr = 10):
     '''Generates wideband transmission simulation with 4 channels centered at 
     selected frequencies with selected center power. The default behavior is 
     to select 4 random center frequencies between 300M to 1.7G at randomly selected
@@ -213,7 +213,7 @@ def genWidebandTransmission(queue = None, channels=[0, 0, 0, 0], power=[0,0,0,0]
     good reason for this behavior, I would nix these lines. 
     '''
     # Set default center powers if none are provided
-    if centerPowers is None:
+    if power == [0,0,0,0]:
         centerPowers = np.random.uniform(-100, 0, size=4)
 
     # Generate samples across the entire swept frequency range

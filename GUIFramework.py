@@ -1,11 +1,19 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QStackedLayout, QTextEdit, QSizePolicy
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QStackedLayout, QTextEdit, QSizePolicy, QLineEdit, QFormLayout
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIntValidator, QDoubleValidator
 import pickle
 import os.path
 from BinarySpectroViewer import *
 from multiprocessing import set_start_method
 from EARSscan import *
+from StreamSim import *
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
 
 ''' Let's set globals up here for any formatting that will be used across all pages'''
 ButtonStyleSheet = """
@@ -34,6 +42,26 @@ BackButtonStyleSheet = """
                             padding: 5px;}
                     """
 BackgroundStyle = "background-color: black;"
+InputFieldStyleSheet = """ 
+                    QLineEdit{ font: bold; \
+                        font-size: 12pt; \
+                        color: white; \
+                        text-align: center;}
+
+                    QLineEdit:hover { border: 2px solid #fae22d; }
+
+                    QLineEdit:focus { border: 2px solid #2b50bd; }
+
+                    QLineEdit:disabled { background-color: #444; }
+                    """
+LabelStyleSheet = '''
+                    QLabel {
+                        color: white;
+                        font-size: 18px;
+                        font-weight: bold;
+                    }
+                '''
+
 
 class MainWidget(QMainWindow):
     def __init__(self, stackLayout):
@@ -139,20 +167,83 @@ class MainWidget(QMainWindow):
         self.GPSScanButton.clicked.connect(self.GPSScanMethod)
 
     def openToggleScanWidget(self):
-        self.toggleScanWidget = QWidget()
-        self.toggleScanWidget.setStyleSheet(BackgroundStyle)
-        self.toggleScanLayout = QVBoxLayout()
-        self.toggleScanBackButton = QPushButton('Back')
-        '''TODO: Need to setup input fields for taking specifics of requested scan, frequency range for example,
-        need to setup process for calling this scan as well, if it's just frequency as an input then should be easy '''
-        self.toggleScanBackButton.setStyleSheet(BackButtonStyleSheet)
-        self.toggleScanLayout.addWidget(self.toggleScanBackButton)
-        self.toggleScanWidget.setLayout(self.toggleScanLayout)
-        self.stackLayout.addWidget(self.toggleScanWidget)
-        self.stackLayout.setCurrentWidget(self.toggleScanWidget)
+        self.ToggleScanWidget = QWidget()
+        self.ToggleScanWidget.setStyleSheet(BackgroundStyle)
 
-        # set connections for buttons
-        self.toggleScanBackButton.clicked.connect(self.openMainWidget)
+        # Set up the central layout
+        self.ToggleScanCentral_Layout = QVBoxLayout()
+
+        # Add the header label
+        self.ToggleScan_header = QLabel("Toggle\nScan")
+        self.ToggleScan_header.setAlignment(Qt.AlignCenter)
+        self.ToggleScan_header.setStyleSheet("font-size: 25pt; font-weight: bold; color: white;")
+        self.ToggleScanCentral_Layout.addWidget(self.ToggleScan_header)
+
+        # Add the input fields
+        self.ToggleScanInputs_Layout = QHBoxLayout()
+        self.ToggleScaninput_field1_Layout = QVBoxLayout()
+        self.ToggleScaninput_label1 = QLabel("Min Frequency:")
+        self.ToggleScaninput_label1.setStyleSheet(LabelStyleSheet)
+        self.ToggleScaninput_label1.setAlignment(Qt.AlignCenter)
+        self.ToggleScaninput_field1 = QLineEdit()
+        self.ToggleScaninput_field1.setPlaceholderText("20M")
+        self.ToggleScaninput_field1.setStyleSheet(InputFieldStyleSheet)
+        self.ToggleScaninput_field1.setAlignment(Qt.AlignCenter)
+        self.ToggleScaninput_field1.setFixedWidth(300)
+        self.ToggleScaninput_field1.setFixedHeight(50)
+        self.ToggleScaninput_field1.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.ToggleScaninput_field1_Layout.addWidget(self.ToggleScaninput_label1)
+        self.ToggleScaninput_field1_Layout.addWidget(self.ToggleScaninput_field1, alignment=Qt.AlignCenter)
+
+        self.ToggleScaninput_field2_Layout = QVBoxLayout()
+        self.ToggleScaninput_label2 = QLabel("Max Frequency:")
+        self.ToggleScaninput_label2.setStyleSheet(LabelStyleSheet)
+        self.ToggleScaninput_label2.setAlignment(Qt.AlignCenter)
+        self.ToggleScaninput_field2 = QLineEdit()
+        self.ToggleScaninput_field2.setPlaceholderText("80M")
+        self.ToggleScaninput_field2.setStyleSheet(InputFieldStyleSheet)
+        self.ToggleScaninput_field2.setAlignment(Qt.AlignCenter)
+        self.ToggleScaninput_field2.setFixedWidth(300)
+        self.ToggleScaninput_field2.setFixedHeight(50)
+        self.ToggleScaninput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.ToggleScaninput_field2_Layout.addWidget(self.ToggleScaninput_label2)
+        self.ToggleScaninput_field2_Layout.addWidget(self.ToggleScaninput_field2, alignment=Qt.AlignCenter)
+
+        self.ToggleScanInputs_Layout.addLayout(self.ToggleScaninput_field1_Layout)
+        self.ToggleScanInputs_Layout.addLayout(self.ToggleScaninput_field2_Layout)
+        self.ToggleScanCentral_Layout.addLayout(self.ToggleScanInputs_Layout)
+
+        # Add the scan button
+        self.ToggleScanScanButton = QPushButton('Scan')
+        self.ToggleScanScanButton.setStyleSheet(ButtonStyleSheet)
+        self.ToggleScanScanButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.ToggleScanScanButton.setFixedHeight(75)
+        self.ToggleScanCentral_Layout.addWidget(self.ToggleScanScanButton)
+
+        # Add the info label
+        self.ToggleScan_Info = QLabel("""This scan allows you to toggle the frequency range of the scan by choosing minumum and maximum frequency values. Please enter values in the format of 60M for 60 MHz.""")
+        self.ToggleScan_Info.setAlignment(Qt.AlignCenter)
+        self.ToggleScan_Info.setStyleSheet("font-size: 15pt; font-weight: bold; color: white;")
+        self.ToggleScan_Info.setWordWrap(True)
+        self.ToggleScan_Info.setFixedWidth(600)
+        self.ToggleScanCentral_Layout.addWidget(self.ToggleScan_Info, alignment=Qt.AlignHCenter)
+
+        # Add the back button
+        self.toggleScanbackButton = QPushButton('Back')
+        self.toggleScanbackButton.setStyleSheet(BackButtonStyleSheet)
+        self.ToggleScanCentral_Layout.addWidget(self.toggleScanbackButton)
+
+        # Set the layout for the ToggleScanWidget
+        self.ToggleScanWidget.setLayout(self.ToggleScanCentral_Layout)
+
+        # Add the ToggleScanWidget to the stack layout
+        self.stackLayout.addWidget(self.ToggleScanWidget)
+        self.stackLayout.setCurrentWidget(self.ToggleScanWidget)
+
+        # Set connections for buttons
+        self.toggleScanbackButton.clicked.connect(self.openMainWidget)
+        self.ToggleScanScanButton.clicked.connect(self.toggleScanMethod)
+
 
     def openSimulatedScanWidget(self):
         self.simulatedScanWidget = QWidget()
@@ -180,63 +271,275 @@ class MainWidget(QMainWindow):
         self.frequencyHoppingScanButton.clicked.connect(self.openFreqHoppingWidget)
         self.widebandTransmissionScanButton.clicked.connect(self.openWidebandTransmissionWidget)
 
-    '''TODO: All 3 sim scan widgets need to be built out. Needs to be structured to accept inputs, to initiate scan, 
-        and needs to give useful description of scans'''
-
     def openFixedFreqWidget(self):
-        self.widget1_1 = QWidget()
-        self.layout1_1 = QVBoxLayout()
-        self.backButton1_1 = QPushButton('Back')
-        self.label1_1 = QLabel('This is the 1.1 widget')
-        self.scanbutton = QPushButton('Scan')
-        self.layout1_1.addWidget(self.scanbutton)
-        self.layout1_1.addWidget(self.backButton1_1)
-        self.layout1_1.addWidget(self.label1_1)
-        self.widget1_1.setLayout(self.layout1_1)
-        self.stackLayout.addWidget(self.widget1_1)
-        self.stackLayout.setCurrentWidget(self.widget1_1)
+        self.FixFreqWidget = QWidget()
+        self.FixFreqWidget.setStyleSheet(BackgroundStyle)
 
-        # set connections for buttons
-        self.backButton1_1.clicked.connect(self.openSimulatedScanWidget)
-        self.scanbutton.clicked.connect(self.fixedFrequencyScanMethod)
+        # Set up the central layout
+        self.FixFreqCentral_Layout = QVBoxLayout()
+
+        # Add the header label
+        self.FixFreq_header = QLabel("Fixed Frequency\nSimulation")
+        self.FixFreq_header.setAlignment(Qt.AlignCenter)
+        self.FixFreq_header.setStyleSheet("font-size: 25pt; font-weight: bold; color: white;")
+        self.FixFreqCentral_Layout.addWidget(self.FixFreq_header)
+
+        # Add the input fields
+        self.FixFreqInputs_Layout = QVBoxLayout()
+        self.FixFreqinput_field1_Layout = QVBoxLayout()
+        self.FixFreqinput_label1 = QLabel("Center Frequency:")
+        self.FixFreqinput_label1.setStyleSheet(LabelStyleSheet)
+        self.FixFreqinput_label1.setAlignment(Qt.AlignCenter)
+        self.FixFreqinput_field1 = QLineEdit()
+        self.FixFreqinput_field1.setPlaceholderText("60 MHz")
+        self.FixFreqinput_field1.setStyleSheet(InputFieldStyleSheet)
+        self.FixFreqinput_field1.setAlignment(Qt.AlignCenter)
+        self.FixFreqinput_field1.setFixedWidth(300)
+        self.FixFreqinput_field1.setFixedHeight(50)
+        self.FixFreqinput_field1.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.FixFreqinput_field1_Layout.addWidget(self.FixFreqinput_label1)
+        self.FixFreqinput_field1_Layout.addWidget(self.FixFreqinput_field1, alignment=Qt.AlignCenter)
+
+        self.FixFreqinput_field2_Layout = QVBoxLayout()
+        self.FixFreqinput_label2 = QLabel("Transmission Power:")
+        self.FixFreqinput_label2.setStyleSheet(LabelStyleSheet)
+        self.FixFreqinput_label2.setAlignment(Qt.AlignCenter)
+        self.FixFreqinput_field2 = QLineEdit()
+        self.FixFreqinput_field2.setPlaceholderText("-30 dBm")
+        self.FixFreqinput_field2.setStyleSheet(InputFieldStyleSheet)
+        self.FixFreqinput_field2.setAlignment(Qt.AlignCenter)
+        self.FixFreqinput_field2.setFixedWidth(300)
+        self.FixFreqinput_field2.setFixedHeight(50)
+        self.FixFreqinput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.FixFreqinput_field2_Layout.addWidget(self.FixFreqinput_label2)
+        self.FixFreqinput_field2_Layout.addWidget(self.FixFreqinput_field2, alignment=Qt.AlignCenter)
+
+        self.FixFreqInputs_Layout.addLayout(self.FixFreqinput_field1_Layout)
+        self.FixFreqInputs_Layout.addLayout(self.FixFreqinput_field2_Layout)
+        self.FixFreqCentral_Layout.addLayout(self.FixFreqInputs_Layout)
+
+        # Add the scan button
+        self.FixFreqScanButton = QPushButton('Scan')
+        self.FixFreqScanButton.setStyleSheet(ButtonStyleSheet)
+        self.FixFreqScanButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.FixFreqScanButton.setFixedHeight(75)
+        self.FixFreqCentral_Layout.addWidget(self.FixFreqScanButton)
+
+        # Add the info label
+        self.FixFreq_Info = QLabel("""This scan simulation generates a fixed frequency transmission with power centered on the selected frequency. The default behavior is to select a random center frequency and random power if values are left blank. Inputted frequencies must be between 50 MHz and 6 GHz. Inputted powers must be between -30 dBm and 30 dBm. Enter frequency in the form of 60M for 60 MHz. Enter power in the form of -30 for -30 dBm.""")
+        self.FixFreq_Info.setAlignment(Qt.AlignCenter)
+        self.FixFreq_Info.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        self.FixFreq_Info.setWordWrap(True)
+        self.FixFreq_Info.setFixedWidth(900)
+        self.FixFreqCentral_Layout.addWidget(self.FixFreq_Info, alignment=Qt.AlignHCenter)
+
+        # Add the back button
+        self.FixFreqBackButton = QPushButton('Back')
+        self.FixFreqBackButton.setStyleSheet(BackButtonStyleSheet)
+        self.FixFreqCentral_Layout.addWidget(self.FixFreqBackButton)
+
+        # Set the layout for the FixFreqWidget
+        self.FixFreqWidget.setLayout(self.FixFreqCentral_Layout)
+
+        # Add the FixFreqWidget to the stack layout
+        self.stackLayout.addWidget(self.FixFreqWidget)
+        self.stackLayout.setCurrentWidget(self.FixFreqWidget)
+
+        # Set connections for buttons
+        self.FixFreqBackButton.clicked.connect(self.openSimulatedScanWidget)
+        self.FixFreqScanButton.clicked.connect(self.fixedFrequencyScanMethod)
 
     def openFreqHoppingWidget(self):
-        self.widget2_1 = QWidget()
-        self.layout2_1 = QVBoxLayout()
-        self.backButton2_1 = QPushButton('Back')
-        self.label2_1 = QLabel('This is the 2.1 widget')
-        self.scanbutton = QPushButton('Scan')
-        self.layout2_1.addWidget(self.scanbutton)
-        self.layout2_1.addWidget(self.backButton2_1)
-        self.layout2_1.addWidget(self.label2_1)
-        self.widget2_1.setLayout(self.layout2_1)
-        self.stackLayout.addWidget(self.widget2_1)
-        self.stackLayout.setCurrentWidget(self.widget2_1)
+        self.FreqHopWidget = QWidget()
+        self.FreqHopWidget.setStyleSheet(BackgroundStyle)
 
-        # set connections for buttons
-        self.backButton2_1.clicked.connect(self.openSimulatedScanWidget)
-        self.scanbutton.clicked.connect(self.frequencyHoppingScanMethod)
+        # Set up the central layout
+        self.FreqHopCentral_Layout = QVBoxLayout()
+
+        # Add the header label
+        self.FreqHop_header = QLabel("Frequency Hopping\nSimulation")
+        self.FreqHop_header.setAlignment(Qt.AlignCenter)
+        self.FreqHop_header.setStyleSheet("font-size: 25pt; font-weight: bold; color: white;")
+        self.FreqHopCentral_Layout.addWidget(self.FreqHop_header)
+
+        # Add the input fields
+        self.FreqHopInputs_Layout = QVBoxLayout()
+        self.FreqHopinput_field1_Layout = QVBoxLayout()
+        self.FreqHopinput_label1 = QLabel("Hop Duration:")
+        self.FreqHopinput_label1.setStyleSheet(LabelStyleSheet)
+        self.FreqHopinput_label1.setAlignment(Qt.AlignCenter)
+        self.FreqHopinput_field1 = QLineEdit()
+        self.FreqHopinput_field1.setPlaceholderText("5 Sec")
+        self.FreqHopinput_field1.setStyleSheet(InputFieldStyleSheet)
+        self.FreqHopinput_field1.setAlignment(Qt.AlignCenter)
+        self.FreqHopinput_field1.setFixedWidth(300)
+        self.FreqHopinput_field1.setFixedHeight(50)
+        self.FreqHopinput_field1.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.FreqHopinput_field1_Layout.addWidget(self.FreqHopinput_label1)
+        self.FreqHopinput_field1_Layout.addWidget(self.FreqHopinput_field1, alignment=Qt.AlignCenter)
+
+        self.FreqHopinput_field2_Layout = QVBoxLayout()
+        self.FreqHopinput_label2 = QLabel("Transmission Power:")
+        self.FreqHopinput_label2.setStyleSheet(LabelStyleSheet)
+        self.FreqHopinput_label2.setAlignment(Qt.AlignCenter)
+        self.FreqHopinput_field2 = QLineEdit()
+        self.FreqHopinput_field2.setPlaceholderText("-30 dBm")
+        self.FreqHopinput_field2.setStyleSheet(InputFieldStyleSheet)
+        self.FreqHopinput_field2.setAlignment(Qt.AlignCenter)
+        self.FreqHopinput_field2.setFixedWidth(300)
+        self.FreqHopinput_field2.setFixedHeight(50)
+        self.FreqHopinput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.FreqHopinput_field2_Layout.addWidget(self.FreqHopinput_label2)
+        self.FreqHopinput_field2_Layout.addWidget(self.FreqHopinput_field2, alignment=Qt.AlignCenter)
+
+        self.FreqHopInputs_Layout.addLayout(self.FreqHopinput_field1_Layout)
+        self.FreqHopInputs_Layout.addLayout(self.FreqHopinput_field2_Layout)
+        self.FreqHopCentral_Layout.addLayout(self.FreqHopInputs_Layout)
+
+        # Add the scan button
+        self.FreqHopScanButton = QPushButton('Scan')
+        self.FreqHopScanButton.setStyleSheet(ButtonStyleSheet)
+        self.FreqHopScanButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.FreqHopScanButton.setFixedHeight(75)
+        self.FreqHopCentral_Layout.addWidget(self.FreqHopScanButton)
+
+        # Add the info label
+        self.FreqHop_Info = QLabel("""Generates a frequency hopping transmission simulation with the high power center moving to a new frequency every period of hop duration in seconds. If hop duration or power is not provided, a random value within the proper parameters is chosen.""")
+        self.FreqHop_Info.setAlignment(Qt.AlignCenter)
+        self.FreqHop_Info.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        self.FreqHop_Info.setWordWrap(True)
+        self.FreqHop_Info.setFixedWidth(900)
+        self.FreqHopCentral_Layout.addWidget(self.FreqHop_Info, alignment=Qt.AlignHCenter)
+
+        # Add the back button
+        self.FreqHopBackButton = QPushButton('Back')
+        self.FreqHopBackButton.setStyleSheet(BackButtonStyleSheet)
+        self.FreqHopCentral_Layout.addWidget(self.FreqHopBackButton)
+
+        # Set the layout for the FreqHopWidget
+        self.FreqHopWidget.setLayout(self.FreqHopCentral_Layout)
+
+        # Add the FreqHopWidget to the stack layout
+        self.stackLayout.addWidget(self.FreqHopWidget)
+        self.stackLayout.setCurrentWidget(self.FreqHopWidget)
+
+        # Set connections for buttons
+        self.FreqHopBackButton.clicked.connect(self.openSimulatedScanWidget)
+        self.FreqHopScanButton.clicked.connect(self.frequencyHoppingScanMethod)
 
     def openWidebandTransmissionWidget(self):
-        self.widget3_1 = QWidget()
-        self.layout3_1 = QVBoxLayout()
-        self.backButton3_1 = QPushButton('Back')
-        self.label3_1 = QLabel('This is the 3.1 widget')
-        self.scanbutton = QPushButton('Scan')
-        self.layout3_1.addWidget(self.scanbutton)
-        self.layout3_1.addWidget(self.backButton3_1)
-        self.layout3_1.addWidget(self.label3_1)
-        self.widget3_1.setLayout(self.layout3_1)
-        self.stackLayout.addWidget(self.widget3_1)
-        self.stackLayout.setCurrentWidget(self.widget3_1)
+        self.WidebandWidget = QWidget()
+        self.WidebandWidget.setStyleSheet(BackgroundStyle)
 
-        # set connections for buttons
-        self.backButton3_1.clicked.connect(self.openSimulatedScanWidget)
-        self.scanbutton.clicked.connect(self.widebandTransmissionScanMethod)
+        # Set up the central layout
+        self.WidebandCentral_Layout = QVBoxLayout()
+
+        # Add the header label
+        self.Wideband_header = QLabel("Wideband Transmission\nSimulation")
+        self.Wideband_header.setAlignment(Qt.AlignCenter)
+        self.Wideband_header.setStyleSheet("font-size: 25pt; font-weight: bold; color: white;")
+        self.WidebandCentral_Layout.addWidget(self.Wideband_header)
+
+        # Add the input fields
+        self.WidebandInputs_Layout = QVBoxLayout()
+        self.Widebandinput_field_label_Layout = QVBoxLayout()
+        self.Widebandinput_field1_Layout = QHBoxLayout()
+        self.Widebandinput_label1 = QLabel("Wideband Frequencies:")
+        self.Widebandinput_label1.setStyleSheet(LabelStyleSheet)
+        self.Widebandinput_label1.setAlignment(Qt.AlignCenter)
+        self.Widebandinput_field_label_Layout.addWidget(self.Widebandinput_label1)
+        self.Widebandinput_field1_1 = QLineEdit()
+        self.Widebandinput_field1_2 = QLineEdit()
+        self.Widebandinput_field1_3 = QLineEdit()
+        self.Widebandinput_field1_4 = QLineEdit()
+        self.Widebandinput_fields = [self.Widebandinput_field1_1, self.Widebandinput_field1_2, self.Widebandinput_field1_3, self.Widebandinput_field1_4]
+        for field in self.Widebandinput_fields:
+            field.setStyleSheet(InputFieldStyleSheet)
+            field.setAlignment(Qt.AlignCenter)
+            field.setFixedWidth(150)
+            field.setFixedHeight(50)
+            field.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+            self.Widebandinput_field1_Layout.addWidget(field, alignment=Qt.AlignCenter)
+        self.Widebandinput_field1_1.setPlaceholderText("20 MHz")
+        self.Widebandinput_field1_2.setPlaceholderText("40 MHz")
+        self.Widebandinput_field1_3.setPlaceholderText("60 MHz")
+        self.Widebandinput_field1_4.setPlaceholderText("80 MHz")
+        self.Widebandinput_field_label_Layout.addLayout(self.Widebandinput_field1_Layout)
+
+        self.Widebandinput_field2_Layout = QVBoxLayout()
+        self.Widebandinput_label2 = QLabel("Transmission Power:")
+        self.Widebandinput_label2.setStyleSheet(LabelStyleSheet)
+        self.Widebandinput_label2.setAlignment(Qt.AlignCenter)
+        self.Widebandinput_field2 = QLineEdit()
+        self.Widebandinput_field2.setPlaceholderText("-30 dBm")
+        self.Widebandinput_field2.setStyleSheet(InputFieldStyleSheet)
+        self.Widebandinput_field2.setAlignment(Qt.AlignCenter)
+        self.Widebandinput_field2.setFixedWidth(300)
+        self.Widebandinput_field2.setFixedHeight(50)
+        self.Widebandinput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.Widebandinput_field2_Layout.addWidget(self.Widebandinput_label2)
+        self.Widebandinput_field2_Layout.addWidget(self.Widebandinput_field2, alignment=Qt.AlignCenter)
+
+        self.WidebandInputs_Layout.addLayout(self.Widebandinput_field_label_Layout)
+        self.WidebandInputs_Layout.addLayout(self.Widebandinput_field2_Layout)
+        self.WidebandCentral_Layout.addLayout(self.WidebandInputs_Layout)
+
+        # Add the scan button
+        self.WidebandScanButton = QPushButton('Scan')
+        self.WidebandScanButton.setStyleSheet(ButtonStyleSheet)
+        self.WidebandScanButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.WidebandScanButton.setFixedHeight(75)
+        self.WidebandCentral_Layout.addWidget(self.WidebandScanButton)
+
+        # Add the info label
+        self.Wideband_Info = QLabel("""Generates wideband transmission simulation with 4 channels centered at selected frequencies with selected center power. The default behavior is to select 4 random center frequencies between 300M to 1.7G at randomly selected center powers.""")
+        self.Wideband_Info.setAlignment(Qt.AlignCenter)
+        self.Wideband_Info.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        self.Wideband_Info.setWordWrap(True)
+        self.Wideband_Info.setFixedWidth(900)
+        self.WidebandCentral_Layout.addWidget(self.Wideband_Info, alignment=Qt.AlignHCenter)
+
+        # Add the back button
+        self.WidebandBackButton = QPushButton('Back')
+        self.WidebandBackButton.setStyleSheet(BackButtonStyleSheet)
+        self.WidebandCentral_Layout.addWidget(self.WidebandBackButton)
+
+        # Set the layout for the WidebandWidget
+        self.WidebandWidget.setLayout(self.WidebandCentral_Layout)
+
+        # Add the WidebandWidget to the stack layout
+        self.stackLayout.addWidget(self.WidebandWidget)
+        self.stackLayout.setCurrentWidget(self.WidebandWidget)
+
+        # Set connections for buttons
+        self.WidebandBackButton.clicked.connect(self.openSimulatedScanWidget)
+        self.WidebandScanButton.clicked.connect(self.widebandTransmissionScanMethod)
 
     def openPlottingWidget(self):
         '''TODO'''
-        return
+        ''''This should work something like, every method function has a first line that calls this widget to open in place of the others, 
+        then the data is generated and the plot is made on this widget, then when the user leaves the widget the plot is claered so that 
+        there isnt any old data when they generate a new plot'''
+
+        self.plottingWidget = QWidget()
+        self.plottingWidget.setStyleSheet(BackgroundStyle)
+        self.plottingLayout = QVBoxLayout()
+
+        #I need to figure out how to get the data from the scan to be plotted here on the widget rather then in a new matplotlib window
+        fig = plt.figure()
+        canvas = FigureCanvas(fig)
+        self.plottingLayout.addWidget(canvas)
+
+
+        self.plottingBackButton = QPushButton('Back')
+        self.plottingBackButton.setStyleSheet(BackButtonStyleSheet)
+        self.plottingLayout.addWidget(self.plottingBackButton)
+        self.plottingWidget.setLayout(self.plottingLayout)
+        self.stackLayout.addWidget(self.plottingWidget)
+        self.stackLayout.setCurrentWidget(self.plottingWidget)
+        
+        # set connections for buttons
+        self.plottingBackButton.clicked.connect(self.openMainWidget)
     
     '''TODO: Need to figure out how errors and updates will be handled with new button scheme
     whether with popups or integrating alert section into pages'''
@@ -268,18 +571,50 @@ class MainWidget(QMainWindow):
         scanWindowProcess.start()
 
     def toggleScanMethod(self):
-        '''TODO'''
-        return
+        ToggleScan_starting_freq = self.ToggleScaninput_field1.text()
+        ToggleScan_ending_freq = self.ToggleScaninput_field2.text()
+        cmdFreq = ToggleScan_starting_freq + ":" + ToggleScan_ending_freq
+
+        if ToggleScan_starting_freq == "" and ToggleScan_ending_freq == "":
+            cmdFreq = '30M:88M'
+
+        elif ToggleScan_starting_freq == "":
+            cmdFreq = '30M:' + ToggleScan_ending_freq
+
+        elif ToggleScan_ending_freq == "":
+            cmdFreq = ToggleScan_starting_freq + ':88M'
+
+        else: 
+            cmdFreq = ToggleScan_starting_freq + ":" + ToggleScan_ending_freq
+
+        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, True))
+        scanWindowProcess.start()
     
     def fixedFrequencyScanMethod(self):
         '''TODO'''
-        scanWindowProcess = Process(target=startScanWindow, args=('30M:1G', ))
+        # I'm pretty sure we want to change this to accept center frequency and power as input not freq range
+        
+        FixFreq_starting_freq = self.FixFreqinput_field1.text()
+        FixFreq_ending_freq = self.FixFreqinput_field2.text()
+        if FixFreq_starting_freq == "" and FixFreq_ending_freq == "":
+            cmdFreq = '30M:88M'
+
+        elif FixFreq_starting_freq == "":
+            cmdFreq = '30M:' + FixFreq_ending_freq
+
+        elif FixFreq_ending_freq == "":
+            cmdFreq = FixFreq_starting_freq + ':88M'
+
+        else: 
+            cmdFreq = FixFreq_starting_freq + ":" + FixFreq_ending_freq
+
+        scanWindowProcess = Process(target=streamScanTest, args= (cmdFreq, True, 50_000_000, -20))
         scanWindowProcess.start()
         
     
     def frequencyHoppingScanMethod(self):
         '''TODO'''
-        scanWindowProcess = Process(target=startScanWindow, args=('30M:1G', ))
+        scanWindowProcess = Process(target=startScanWindow, args=('30M:1G', True))
         scanWindowProcess.start()
         
     

@@ -166,11 +166,16 @@ def streamScan(cmdFreq = '88M:100M', SWBqueue=None):
     return
 
 
-def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
+
+
+def streamScanTest(cmdFreq = '30M:35M', simFlag = False , input_center_freq = 32_000_000 , input_power = 0):
     #This is used to test the logic, processing, and any changes. 
     if simFlag:
         #Make sim functions available only if we are going to use them
         import StreamSim
+
+
+
 
     plt.ion()
     plt.style.use('dark_background')
@@ -186,13 +191,26 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
     #Start up the logging thread
     logger = Process(target=DB_Logger, args=(logQueue,), daemon=True)
     logger.start()
+
+
+
     #Log the start of the session
     threading.Thread(target=passCmdToDbLogger, args=("Start Session", simFlag)).start()
     #Log the command we are using
     threading.Thread(target=passCmdToDbLogger, args=(cmd, simFlag)).start()
     #Get the baseline data
     #Figure out the numeric equivalent of our commanded freqs
-    lowF, highF = convertFreqtoInt(cmdFreq)
+    
+
+    try:
+        lowF, highF = convertFreqtoInt(cmdFreq)
+
+    except(ValueError):
+        
+        print('Invalid frequency range, Please input frequency in form ###K, ###M or ###G')
+        return
+
+
     blData = RetrieveBaselineData(freqMin = lowF, freqMax = highF)
     if blData is None:
         print('Blank baseline data!')
@@ -221,7 +239,7 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
                     sleep(.5)
         else:
             #s = StreamSim.genFixedFreq(cmdFreq=cmdFreq, selectedFreq=32_000_000)
-            s = StreamSim.genQuickAndDirtySimForWes(scannedFreqRange=cmdFreq)
+            s = StreamSim.genQuickAndDirtySimForWes(scannedFreqRange=cmdFreq, txCenterFreq = input_center_freq, peakPower = input_power)
         data = processRFScan(s.stdout) #Process the bytes like object into the list of tuples we use for processing
         df = pd.DataFrame(data, columns=['frequency', 'power']) #revisit this later. Profiling showed this wasn't a big eater, but the dataframe class is way beefier than I need for just a plot
         threading.Thread(target=passToDbLogger, args=(data, simFlag)).start() #Go ahead and leave this in a different thread. This present thread should focus on processing the RF data        
@@ -243,7 +261,9 @@ def streamScanTest(cmdFreq = '30M:35M', simFlag = False):
         maxDF.reset_index().plot(ax=ax, x='freqCompare', y='power', style='y', linewidth = .5, label='max hold', grid='On', title = 'ScanView')
         df.plot(ax=ax, x='frequency', y='power', grid='On', title = 'ScanView', label='current', alpha = .7, linewidth = .5)
         ax.fill_between(df['frequency'], df['power'], df['power'].min(), alpha = .5)
-        baseline.plot(ax=ax, x='frequency', y='power', style='r-.', linewidth=.3, alpha = .7, label='baseline')
+
+        '''comment line below out for testing sim'''
+        #baseline.plot(ax=ax, x='frequency', y='power', style='r-.', linewidth=.3, alpha = .7, label='baseline')
         plt.grid(True, color='w', linestyle=':', linewidth=.3)
         plt.pause(.1)
 
@@ -262,13 +282,12 @@ if __name__ == '__main__':
     set_start_method("spawn")
 
     #Check for baseline data
-    if not checkForBaselineData():
+    #if not checkForBaselineData():
         #Get baseline data
-        print('Generating baseline data. Sit tight...')
-        takeBaselineMeasurement()
+   #     print('Generating baseline data. Sit tight...')
+   #     takeBaselineMeasurement()
 
     #Call main function
     #streamScan()
-    #streamScanTest(cmdFreq= "31_900_000:32_100_000", \
-    #               simFlag=True)
-    streamScanTest(simFlag=True)
+    streamScanTest(cmdFreq= "30M:1G", simFlag=True)
+    #streamScanTest(simFlag=False)
