@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QStackedLayout, QTextEdit, QSizePolicy, QLineEdit, QFormLayout
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QStackedLayout, QTextEdit, QSizePolicy, QLineEdit, QFormLayout, QDialog, QDialogButtonBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 import pickle
@@ -64,6 +64,24 @@ LabelStyleSheet = '''
 SubPageHeaderStyleSheet = '''font-size: 15pt; font-weight: bold; color: white;'''
 SubPageInfoStyleSheet = '''font-size: 10pt; font-weight: bold; color: white;'''
 
+
+class confirmDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.setWindowTitle("Confirm")
+
+        QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        self.layout = QVBoxLayout()
+        self.prompt = QLabel(" ")
+        self.layout.addWidget(self.prompt)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
 
 class MainWidget(QMainWindow):
     def __init__(self, stackLayout):
@@ -288,8 +306,10 @@ class MainWidget(QMainWindow):
 
         # Add the input fields
         self.FixFreqInputs_Layout = QVBoxLayout()
+
+        self.FixFreqInputsUpper_Layout = QHBoxLayout()
         self.FixFreqinput_field1_Layout = QVBoxLayout()
-        self.FixFreqinput_label1 = QLabel("Center Frequency:")
+        self.FixFreqinput_label1 = QLabel("Transmission Frequency:")
         self.FixFreqinput_label1.setStyleSheet(LabelStyleSheet)
         self.FixFreqinput_label1.setAlignment(Qt.AlignCenter)
         self.FixFreqinput_field1 = QLineEdit()
@@ -316,8 +336,44 @@ class MainWidget(QMainWindow):
         self.FixFreqinput_field2_Layout.addWidget(self.FixFreqinput_label2)
         self.FixFreqinput_field2_Layout.addWidget(self.FixFreqinput_field2, alignment=Qt.AlignCenter)
 
-        self.FixFreqInputs_Layout.addLayout(self.FixFreqinput_field1_Layout)
-        self.FixFreqInputs_Layout.addLayout(self.FixFreqinput_field2_Layout)
+        self.FixFreqInputsUpper_Layout.addLayout(self.FixFreqinput_field1_Layout)
+        self.FixFreqInputsUpper_Layout.addLayout(self.FixFreqinput_field2_Layout)
+        self.FixFreqInputs_Layout.addLayout(self.FixFreqInputsUpper_Layout)
+
+        self.FixFreqInputsLower_Layout = QHBoxLayout()
+
+        self.FixFreqinput_field3_Layout = QVBoxLayout()
+        self.FixFreqinput_label3 = QLabel("Lower Frequency:")
+        self.FixFreqinput_label3.setStyleSheet(LabelStyleSheet)
+        self.FixFreqinput_label3.setAlignment(Qt.AlignCenter)
+        self.FixFreqinput_field3 = QLineEdit()
+        self.FixFreqinput_field3.setPlaceholderText("20 MHz")
+        self.FixFreqinput_field3.setStyleSheet(InputFieldStyleSheet)
+        self.FixFreqinput_field3.setAlignment(Qt.AlignCenter)
+        self.FixFreqinput_field3.setFixedWidth(200)
+        self.FixFreqinput_field3.setFixedHeight(40)
+        self.FixFreqinput_field3.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.FixFreqinput_field3_Layout.addWidget(self.FixFreqinput_label3)
+        self.FixFreqinput_field3_Layout.addWidget(self.FixFreqinput_field3, alignment=Qt.AlignCenter)
+
+        self.FixFreqinput_field4_Layout = QVBoxLayout()
+        self.FixFreqinput_label4 = QLabel("Upper Frequency:")
+        self.FixFreqinput_label4.setStyleSheet(LabelStyleSheet)
+        self.FixFreqinput_label4.setAlignment(Qt.AlignCenter)
+        self.FixFreqinput_field4 = QLineEdit()
+        self.FixFreqinput_field4.setPlaceholderText("80 MHz")
+        self.FixFreqinput_field4.setStyleSheet(InputFieldStyleSheet)
+        self.FixFreqinput_field4.setAlignment(Qt.AlignCenter)
+        self.FixFreqinput_field4.setFixedWidth(200)
+        self.FixFreqinput_field4.setFixedHeight(40)
+        self.FixFreqinput_field4.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.FixFreqinput_field4_Layout.addWidget(self.FixFreqinput_label4)
+        self.FixFreqinput_field4_Layout.addWidget(self.FixFreqinput_field4, alignment=Qt.AlignCenter)
+
+        self.FixFreqInputsLower_Layout.addLayout(self.FixFreqinput_field3_Layout)
+        self.FixFreqInputsLower_Layout.addLayout(self.FixFreqinput_field4_Layout)
+        self.FixFreqInputs_Layout.addLayout(self.FixFreqInputsLower_Layout)
+
         self.FixFreqCentral_Layout.addLayout(self.FixFreqInputs_Layout)
 
         # Add the scan button
@@ -366,6 +422,7 @@ class MainWidget(QMainWindow):
 
         # Add the input fields
         self.FreqHopInputs_Layout = QVBoxLayout()
+        self.FreqHopInputsUpper_Layout = QHBoxLayout()
         self.FreqHopinput_field1_Layout = QVBoxLayout()
         self.FreqHopinput_label1 = QLabel("Hop Duration:")
         self.FreqHopinput_label1.setStyleSheet(LabelStyleSheet)
@@ -394,9 +451,46 @@ class MainWidget(QMainWindow):
         self.FreqHopinput_field2_Layout.addWidget(self.FreqHopinput_label2)
         self.FreqHopinput_field2_Layout.addWidget(self.FreqHopinput_field2, alignment=Qt.AlignCenter)
 
-        self.FreqHopInputs_Layout.addLayout(self.FreqHopinput_field1_Layout)
-        self.FreqHopInputs_Layout.addLayout(self.FreqHopinput_field2_Layout)
+        self.FreqHopInputsUpper_Layout.addLayout(self.FreqHopinput_field1_Layout)
+        self.FreqHopInputsUpper_Layout.addLayout(self.FreqHopinput_field2_Layout)
+
+        self.FreqHopCentral_Layout.addLayout(self.FreqHopInputsUpper_Layout)
+
+        self.FreqHopInputsLower_Layout = QHBoxLayout()
+        self.FreqHopinput_field3_Layout = QVBoxLayout()
+        self.FreqHopinput_label3 = QLabel("Lower Frequency:")
+        self.FreqHopinput_label3.setStyleSheet(LabelStyleSheet)
+        self.FreqHopinput_label3.setAlignment(Qt.AlignCenter)
+        self.FreqHopinput_field3 = QLineEdit()
+        self.FreqHopinput_field3.setPlaceholderText("20 MHz")
+        self.FreqHopinput_field3.setStyleSheet(InputFieldStyleSheet)
+        self.FreqHopinput_field3.setAlignment(Qt.AlignCenter)
+        self.FreqHopinput_field3.setFixedWidth(200)
+        self.FreqHopinput_field3.setFixedHeight(40)
+        self.FreqHopinput_field3.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.FreqHopinput_field3_Layout.addWidget(self.FreqHopinput_label3)
+        self.FreqHopinput_field3_Layout.addWidget(self.FreqHopinput_field3, alignment=Qt.AlignCenter)
+
+        self.FreqHopinput_field4_Layout = QVBoxLayout()
+        self.FreqHopinput_label4 = QLabel("Upper Frequency:")
+        self.FreqHopinput_label4.setStyleSheet(LabelStyleSheet)
+        self.FreqHopinput_label4.setAlignment(Qt.AlignCenter)
+        self.FreqHopinput_field4 = QLineEdit()
+        self.FreqHopinput_field4.setPlaceholderText("80 MHz")
+        self.FreqHopinput_field4.setStyleSheet(InputFieldStyleSheet)
+        self.FreqHopinput_field4.setAlignment(Qt.AlignCenter)
+        self.FreqHopinput_field4.setFixedWidth(200)
+        self.FreqHopinput_field4.setFixedHeight(40)
+        self.FreqHopinput_field4.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.FreqHopinput_field4_Layout.addWidget(self.FreqHopinput_label4)
+        self.FreqHopinput_field4_Layout.addWidget(self.FreqHopinput_field4, alignment=Qt.AlignCenter)
+
+        self.FreqHopInputsLower_Layout.addLayout(self.FreqHopinput_field3_Layout)
+        self.FreqHopInputsLower_Layout.addLayout(self.FreqHopinput_field4_Layout)
+
+        self.FreqHopInputs_Layout.addLayout(self.FreqHopInputsLower_Layout)
         self.FreqHopCentral_Layout.addLayout(self.FreqHopInputs_Layout)
+
 
         # Add the scan button
         self.FreqHopScanButton = QPushButton('Scan')
@@ -444,12 +538,12 @@ class MainWidget(QMainWindow):
 
         # Add the input fields
         self.WidebandInputs_Layout = QVBoxLayout()
-        self.Widebandinput_field_label_Layout = QVBoxLayout()
-        self.Widebandinput_field1_Layout = QHBoxLayout()
+        self.Widebandinput_field1_Layout = QVBoxLayout()
+        self.Widebandinput_Upper_Layout = QHBoxLayout()
         self.Widebandinput_label1 = QLabel("Wideband Frequencies:")
         self.Widebandinput_label1.setStyleSheet(LabelStyleSheet)
         self.Widebandinput_label1.setAlignment(Qt.AlignCenter)
-        self.Widebandinput_field_label_Layout.addWidget(self.Widebandinput_label1)
+        self.Widebandinput_field1_Layout.addWidget(self.Widebandinput_label1)
         self.Widebandinput_field1_1 = QLineEdit()
         self.Widebandinput_field1_2 = QLineEdit()
         self.Widebandinput_field1_3 = QLineEdit()
@@ -461,13 +555,14 @@ class MainWidget(QMainWindow):
             field.setFixedWidth(150)
             field.setFixedHeight(40)
             field.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
-            self.Widebandinput_field1_Layout.addWidget(field, alignment=Qt.AlignCenter)
+            self.Widebandinput_Upper_Layout.addWidget(field, alignment=Qt.AlignCenter)
         self.Widebandinput_field1_1.setPlaceholderText("20 MHz")
         self.Widebandinput_field1_2.setPlaceholderText("40 MHz")
         self.Widebandinput_field1_3.setPlaceholderText("60 MHz")
         self.Widebandinput_field1_4.setPlaceholderText("80 MHz")
-        self.Widebandinput_field_label_Layout.addLayout(self.Widebandinput_field1_Layout)
+        self.Widebandinput_field1_Layout.addLayout(self.Widebandinput_Upper_Layout)
 
+        self.Widebandinput_Lower_Layout = QHBoxLayout()
         self.Widebandinput_field2_Layout = QVBoxLayout()
         self.Widebandinput_label2 = QLabel("Transmission Power:")
         self.Widebandinput_label2.setStyleSheet(LabelStyleSheet)
@@ -481,9 +576,40 @@ class MainWidget(QMainWindow):
         self.Widebandinput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
         self.Widebandinput_field2_Layout.addWidget(self.Widebandinput_label2)
         self.Widebandinput_field2_Layout.addWidget(self.Widebandinput_field2, alignment=Qt.AlignCenter)
+        self.Widebandinput_Lower_Layout.addLayout(self.Widebandinput_field2_Layout)
 
-        self.WidebandInputs_Layout.addLayout(self.Widebandinput_field_label_Layout)
-        self.WidebandInputs_Layout.addLayout(self.Widebandinput_field2_Layout)
+        self.Widebandinput_field3_Layout = QVBoxLayout()
+        self.Widebandinput_label3 = QLabel("Lower Frequency:")
+        self.Widebandinput_label3.setStyleSheet(LabelStyleSheet)
+        self.Widebandinput_label3.setAlignment(Qt.AlignCenter)
+        self.Widebandinput_field3 = QLineEdit()
+        self.Widebandinput_field3.setPlaceholderText("10 MHz")
+        self.Widebandinput_field3.setStyleSheet(InputFieldStyleSheet)
+        self.Widebandinput_field3.setAlignment(Qt.AlignCenter)
+        self.Widebandinput_field3.setFixedWidth(200)
+        self.Widebandinput_field3.setFixedHeight(40)
+        self.Widebandinput_field3.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.Widebandinput_field3_Layout.addWidget(self.Widebandinput_label3)
+        self.Widebandinput_field3_Layout.addWidget(self.Widebandinput_field3, alignment=Qt.AlignCenter)
+        self.Widebandinput_Lower_Layout.addLayout(self.Widebandinput_field3_Layout)
+
+        self.Widebandinput_field4_Layout = QVBoxLayout()
+        self.Widebandinput_label4 = QLabel("Upper Frequency:")
+        self.Widebandinput_label4.setStyleSheet(LabelStyleSheet)
+        self.Widebandinput_label4.setAlignment(Qt.AlignCenter)
+        self.Widebandinput_field4 = QLineEdit()
+        self.Widebandinput_field4.setPlaceholderText("90 MHz")
+        self.Widebandinput_field4.setStyleSheet(InputFieldStyleSheet)
+        self.Widebandinput_field4.setAlignment(Qt.AlignCenter)
+        self.Widebandinput_field4.setFixedWidth(200)
+        self.Widebandinput_field4.setFixedHeight(40)
+        self.Widebandinput_field4.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
+        self.Widebandinput_field4_Layout.addWidget(self.Widebandinput_label4)
+        self.Widebandinput_field4_Layout.addWidget(self.Widebandinput_field4, alignment=Qt.AlignCenter)
+        self.Widebandinput_Lower_Layout.addLayout(self.Widebandinput_field4_Layout)
+
+        self.WidebandInputs_Layout.addLayout(self.Widebandinput_field1_Layout)
+        self.WidebandInputs_Layout.addLayout(self.Widebandinput_Lower_Layout)
         self.WidebandCentral_Layout.addLayout(self.WidebandInputs_Layout)
 
         # Add the scan button
@@ -595,23 +721,25 @@ class MainWidget(QMainWindow):
     def fixedFrequencyScanMethod(self):
         '''TODO'''
         # I'm pretty sure we want to change this to accept center frequency and power as input not freq range
+        #self.openPlottingWidget()
         
         FixFreq_starting_freq = self.FixFreqinput_field1.text()
         FixFreq_ending_freq = self.FixFreqinput_field2.text()
         if FixFreq_starting_freq == "" and FixFreq_ending_freq == "":
-            cmdFreq = '30M:88M'
+            cmdFreq = '30M:35M'
 
         elif FixFreq_starting_freq == "":
             cmdFreq = '30M:' + FixFreq_ending_freq
 
         elif FixFreq_ending_freq == "":
-            cmdFreq = FixFreq_starting_freq + ':88M'
+            cmdFreq = FixFreq_starting_freq + ':35M'
 
         else: 
             cmdFreq = FixFreq_starting_freq + ":" + FixFreq_ending_freq
 
         scanWindowProcess = Process(target=streamScanTest, args= (cmdFreq, True, 50_000_000, -20))
         scanWindowProcess.start()
+        
         
     
     def frequencyHoppingScanMethod(self):
@@ -690,8 +818,8 @@ class MainWindow(QWidget):
         self.setLayout(self.stackLayout)
 
         self.setWindowTitle('Tactical Footprint Scanner')
-        self.showMaximized()
-        #self.resize(800, 480)  # Replace the width and height values for testing what GUI looks like on PI screen
+        #self.showMaximized()
+        self.resize(800, 480)  # Replace the width and height values for testing what GUI looks like on PI screen
 
 
 

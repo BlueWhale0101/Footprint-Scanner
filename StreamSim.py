@@ -12,6 +12,7 @@ frequencies and power distributions.
 '''
 
 import numpy as np
+import random
 from time import sleep
 
 class responseObject():
@@ -43,7 +44,7 @@ def simFrontEnd():
     back the string for parsing just like the normal hardware routine does. '''
     pass
 
-def genFixedFreq(queue = None, cmdFreq = '62M:67M', selectedFreq=65_000_000, power=-30, snr=10):
+def genFixedFreq(queue = None, scannedFreqRange='30M:35M', selectedFreq = 32_000_000, peakPower=0, snr=10):
     '''Generates fixed frequency transmission simulation with power centered on 
     selected frequency. The default behavior is to select a random center frequency
     between 30 and 88MHz
@@ -52,53 +53,60 @@ def genFixedFreq(queue = None, cmdFreq = '62M:67M', selectedFreq=65_000_000, pow
     :param snr: the signal-to-noise ratio of the added noise (in dB)
     '''
 
+    #This is using a hard coded peak power of 0 dB at the Rx, and a channel width of nearly 12.5kHz. 
     s = responseObject()
 
-    #3/5 There are really two frequency concepts you need in this function:
-    #The frequecy range we are sweeping and the center frequency where the power is 
-    #observed. It looks like the intent of selectedFreq is to be the center frequency, 
-    #so I've added a parameter for the commanded fequency range, cmdFreq. This mirrors
-    #the real scanning function and us to re-use syntax from our hardware commanding for 
-    #our sim commanding.
+    
+    freqLow, freqHigh = convertFreqtoInt(scannedFreqRange)
 
-    #3/5 Let's set a reasonable default value instead of randomly selecting as the default 
-    #behavior. Leave this snippet here, however so that explicitly passing a value of 0
-    #(which would normally result in undefined behavior) will select a random f_center
-    #I've selected 66MHz as the default.
+    # If Frequency not selected give random
     if selectedFreq == 0:
-        selectedFreq = np.random.uniform(30_000_000, 88_000_000)
+        selectedFreq = np.random.uniform(freqLow + 50_000 , freqHigh - 50_001)
+
     
-    #3/5 This function will take the same format that the hardware driver takes and return
-    #two integers we can use as our commanded frequency sweep limits.
-    freqLow, freqHigh = convertFreqtoInt(cmdFreq)
-    #3/5 Similar to f_center, I've changed the defualt value to a reasonable value of 
-    #-30 dB. Note that the units are not really dBm, as the comparison value is not 
-    #calibrated at all. So, while dB is accurate, the units can't be meaningfully converted
-    #to absolute values.
-    if power == 0:
-        power = np.random.uniform(-100, 0)
-    breakpoint()
-    #3/5 Generate samples across the entire swept frequency range. The units are Hz, 
-    #typically 200hz wide samples.
-    # Generate signal power at the specified frequency
-    freqs = np.arange(freqLow, freqHigh, 200)
-    signal_power = np.ones_like(freqs) * 10 ** (power / 10)
+
+    # If peak power not selected give random
+    if peakPower == 0:
+        peakPower = np.random.uniform(-50, -1)
+
+    # Create frequency array
+    freqs = np.arange(freqLow, freqHigh, 100)
+
+    width = 50000
+   
+    # Calculate power at each frequency using a piecewise function
+    power = np.piecewise(freqs, [freqs < selectedFreq-width, 
+                                 (freqs >= selectedFreq-width) & (freqs <= selectedFreq+width), 
+                                 freqs > selectedFreq+width], 
+                         [-70, peakPower, -70])
     
-    # Generate random noise samples with Gaussian distribution
-    noise_power = signal_power / (10 ** (snr / 10))
-    noise = np.random.normal(0, np.sqrt(noise_power))
-    
-    # Add noise to the signal
-    signal = signal_power + noise
-    
-    # Combine signal and frequency data
-    data = list(zip(freqs, signal))
+    # Decay peak power to baseline
+    decay_const = 100  # Adjust as needed to control decay rate
+    txCenterFreqDiff = np.absolute(freqs - int(selectedFreq))
+    txCenterFreqIndex = txCenterFreqDiff.argmin()
+    decay_range = np.arange(-500, 501)
+    decay_func = lambda x: (peakPower - (-70)) * np.exp(-abs(x) / decay_const) + (-70)
+    decay_range_left = txCenterFreqIndex + decay_range[decay_range < 0]
+    decay_range_right = txCenterFreqIndex + decay_range[decay_range >= 0]
+    power[decay_range_left] = [decay_func(x) for x in decay_range[decay_range < 0]]
+    power[decay_range_right] = [decay_func(x) for x in decay_range[decay_range >= 0]]
+
+     # Check if selected frequency plus width is greater than the maximum frequency
+    if selectedFreq + width > freqs[-1] or selectedFreq - width < freqs[0]:
+        power[freqs > selectedFreq + width] = -70
+        power[freqs < selectedFreq - width] = -70
+
+    # Add noise to power using the specified SNR
+    noise = np.random.normal(0, 1, len(power))
+    noise_power = np.var(power) / (10**(snr/10))
+    scaled_noise = np.sqrt(noise_power) * noise
+    power = power + scaled_noise
+    data = list(zip(freqs, power))
     s.stdout = '\\n'.join([str(x)+' '+str(y) for x,y in data])
    
     curCmd = None
 
     if queue:
-        #Minor syntax update 3/5
         while curCmd != 'QUIT':
             if not queue.empty():
                 curCmd = queue.get()
@@ -109,60 +117,65 @@ def genFixedFreq(queue = None, cmdFreq = '62M:67M', selectedFreq=65_000_000, pow
         return s
 
 
-def genFreqHopping(queue = None, power=0, hopDuration=0, snr=10, totalDuration=10):
+def genFreqHopping(queue = None, scannedFreqRange='30M:35M', peakPower=0, snr=10):
     """
     Generates frequency hopping transmission simulation with power center moving frequency every hopDuration seconds.
     If hopDuration or power is not provided, a random value within the proper parameters is chosen.
     The output data is a list of pairs of frequencies and power with added noise.
-
     :param power: the power of the transmission (in dBm)
     :param hopDuration: the duration of each hop in seconds
     :param snr: the signal-to-noise ratio of the added noise (in dB)
     :param totalDuration: the total duration of the simulation in seconds
     """
+
+    #This is using a hard coded peak power of 0 dB at the Rx, and a channel width of nearly 12.5kHz. 
     s = responseObject()
-    if hopDuration == 0:
-        hopDuration = np.random.uniform(0.05, 0.25)
-    if power == 0:
-        power = np.random.uniform(-100, 0)
+
+    freqLow, freqHigh = convertFreqtoInt(scannedFreqRange)
+    selectedFreq = np.random.uniform(freqLow + 50_000 , freqHigh - 50_001)
+
+    # If peak power not selected give random
+    if peakPower == 0:
+        peakPower = np.random.uniform(-50, -1)
+
+    # Create frequency array
+    freqs = np.arange(freqLow, freqHigh, 100)
+
+    width = 50000
+   
+    # Calculate power at each frequency using a piecewise function
+    power = np.piecewise(freqs, [freqs < selectedFreq-width, 
+                                 (freqs >= selectedFreq-width) & (freqs <= selectedFreq+width), 
+                                 freqs > selectedFreq+width], 
+                         [-70, peakPower, -70])
     
-    freqs = np.arange(30_000_000, 88_000_000, 0.01)
-    center_freq = np.random.choice(freqs)
-    time = 0
-    data = []
-    
-    while True:
-        # Generate signal power at the specified frequency
-        signal_power = np.ones_like(freqs) * 10 ** (power / 10)
-        
-        # Generate random noise samples with Gaussian distribution
-        noise_power = signal_power / (10 ** (snr / 10))
-        noise = np.random.normal(0, np.sqrt(noise_power))
-        
-        # Add noise to the signal
-        signal = signal_power + noise
-        
-        # Shift the center frequency to simulate hopping
-        freq_offset = np.random.uniform(-0.5, 0.5)
-        center_freq += freq_offset
-        
-        # Combine signal and frequency data
-        data += list(zip(freqs, signal))
-        
-        # Check if the total duration has been exceeded
-        time += hopDuration
-        if totalDuration and time >= totalDuration:
-            break
-        
-        # Wait for the next hop duration
-        time.sleep(hopDuration)
-    
+    # Decay peak power to baseline
+    decay_const = 100  # Adjust as needed to control decay rate
+    txCenterFreqDiff = np.absolute(freqs - int(selectedFreq))
+    txCenterFreqIndex = txCenterFreqDiff.argmin()
+    decay_range = np.arange(-500, 501)
+    decay_func = lambda x: (peakPower - (-70)) * np.exp(-abs(x) / decay_const) + (-70)
+    decay_range_left = txCenterFreqIndex + decay_range[decay_range < 0]
+    decay_range_right = txCenterFreqIndex + decay_range[decay_range >= 0]
+    power[decay_range_left] = [decay_func(x) for x in decay_range[decay_range < 0]]
+    power[decay_range_right] = [decay_func(x) for x in decay_range[decay_range >= 0]]
+
+    # Check if selected frequency plus width is greater than the maximum frequency
+    if selectedFreq + width > freqs[-1] or selectedFreq - width < freqs[0]:
+        power[freqs > selectedFreq + width] = -70
+        power[freqs < selectedFreq - width] = -70
+
+    # Add noise to power using the specified SNR
+    noise = np.random.normal(0, 1, len(power))
+    noise_power = np.var(power) / (10**(snr/10))
+    scaled_noise = np.sqrt(noise_power) * noise
+    power = power + scaled_noise
+    data = list(zip(freqs, power))
     s.stdout = '\\n'.join([str(x)+' '+str(y) for x,y in data])
    
     curCmd = None
 
     if queue:
-        #3/5 Minor syntax update
         while curCmd != 'QUIT':
             if not queue.empty():
                 curCmd = queue.get()
@@ -172,10 +185,7 @@ def genFreqHopping(queue = None, power=0, hopDuration=0, snr=10, totalDuration=1
     else:
         return s
 
-import numpy as np
-import random
-
-def genWidebandTransmission(queue = None, channels=[0, 0, 0, 0], power=[0,0,0,0], cmdFreq = '300M, 1.7G', snr = 10):
+def genWidebandTransmission(queue = None, scannedFreqRange='30M:35M', selectedFreq1 = 31_000_000, selectedFreq2 = 32_000_000, selectedFreq3 = 33_000_000, selectedFreq4 = 34_000_000, peakPower=0, snr=10):
     '''Generates wideband transmission simulation with 4 channels centered at 
     selected frequencies with selected center power. The default behavior is 
     to select 4 random center frequencies between 300M to 1.7G at randomly selected
@@ -187,66 +197,67 @@ def genWidebandTransmission(queue = None, channels=[0, 0, 0, 0], power=[0,0,0,0]
     :return: None
     '''
 
-    '''
-    4/6 Overall, I can see where you are going but it looks like there are some misunderstandings
-    in both the design and implementation of the code. I've dropped some notes below to help guide
-    where you should be going, and I think the comments and actual code in both Kaleb's 
-    fixed frequency sim as well as genQuickAndDirtySimForWes in StreamSim.py. 
-    '''
-
-
-
+    #This is using a hard coded peak power of 0 dB at the Rx, and a channel width of nearly 12.5kHz. 
     s = responseObject()
 
-    # Convert commanded frequency range to integers
-    freqLow, freqHigh = convertFreqtoInt(cmdFreq)
+    freqLow, freqHigh = convertFreqtoInt(scannedFreqRange)
 
-    '''
-    4/6 Doesn't look like centerPowers is a provided parameter, so this will always default to the None behavior. 
-    I see where you are going here, but i'm not sure if you want that to happen. If you meant 'power',
-    then this will never occur unless the user actually passes 'None' into that param (which would
-    definitely be weird). I think you mean:
-    if power = [0,0,0,0].
+    # If Frequency not selected give random for each of the four frequencies
+    if selectedFreq1 == 0:
+        selectedFreq1 = np.random.uniform(freqLow + 50_000 , freqHigh - 50_001)
+    if selectedFreq2 == 0:
+        selectedFreq2 = np.random.uniform(freqLow + 50_000 , freqHigh - 50_001)
+    if selectedFreq3 == 0:
+        selectedFreq3 = np.random.uniform(freqLow + 50_000 , freqHigh - 50_001)
+    if selectedFreq4 == 0:
+        selectedFreq4 = np.random.uniform(freqLow + 50_000 , freqHigh - 50_001)
 
-    That being said, I think using 0 db as the defaul power of the centers of the transmitting channels
-    is a reasonable assumption, whereas using a random range between 0, -100 is not. Unless you have a
-    good reason for this behavior, I would nix these lines. 
-    '''
-    # Set default center powers if none are provided
-    if power == [0,0,0,0]:
-        centerPowers = np.random.uniform(-100, 0, size=4)
+    # If peak power not selected give random
+    if peakPower == 0:
+        peakPower = np.random.uniform(-50, -1)
 
-    # Generate samples across the entire swept frequency range
-    freqs = np.arange(freqLow, freqHigh, 200)
+    # Create frequency array
+    freqs = np.arange(freqLow, freqHigh, 100)
 
-    '''
-    4/6 The code below will ignore the channel information that is passed in by the user entirely.
-    That means, no matter what, the channels will be at random frequencies instead of being commandable.
-    Definitely change it so that the commanded center frequencies are used. The default behavior if either 
-    all zeros or None is passed in should be to select random frequencies, but that defintely shouldn't be the
-    only possible behavior. 
-    '''
-    # Generate signal power for each of the 4 channels
-    signal_power = np.zeros_like(freqs)
-    for centerFreq, centerPower in zip(np.random.uniform(300_000_000, 1_700_000_000, size=4), centerPowers):
-        signal_power += np.exp(-(freqs - centerFreq) ** 2 / (2 * (20e6) ** 2)) * 10 ** (centerPower / 10)
+    width = 50000
+   
+    # Calculate power at each frequency using a piecewise function
+    power = np.piecewise(freqs, [(freqs < selectedFreq1-width) | (freqs > selectedFreq1+width), 
+                                 (freqs >= selectedFreq1-width) & (freqs <= selectedFreq1+width),
+                                 (freqs < selectedFreq2-width) | (freqs > selectedFreq2+width), 
+                                 (freqs >= selectedFreq2-width) & (freqs <= selectedFreq2+width),
+                                 (freqs < selectedFreq3-width) | (freqs > selectedFreq3+width), 
+                                 (freqs >= selectedFreq3-width) & (freqs <= selectedFreq3+width),
+                                 (freqs < selectedFreq4-width) | (freqs > selectedFreq4+width), 
+                                 (freqs >= selectedFreq4-width) & (freqs <= selectedFreq4+width)], 
+                         [-70, peakPower, -70, peakPower, -70, peakPower, -70, peakPower],)
+    
+    # Decay peak power to baseline
+    decay_const = 100  # Adjust as needed to control decay rate
+    for freq in [selectedFreq1, selectedFreq2, selectedFreq3, selectedFreq4]:
+        txCenterFreqDiff = np.absolute(freqs - int(freq))
+        txCenterFreqIndex = txCenterFreqDiff.argmin()
+        decay_range = np.arange(-500, 501)
+        decay_func = lambda x: (peakPower - (-70)) * np.exp(-abs(x) / decay_const) + (-70)
+        decay_range_left = txCenterFreqIndex + decay_range[decay_range < 0]
+        decay_range_right = txCenterFreqIndex + decay_range[decay_range >= 0]
+        power[decay_range_left] = [decay_func(x) for x in decay_range[decay_range < 0]]
+        power[decay_range_right] = [decay_func(x) for x in decay_range[decay_range >= 0]]
 
+    # Check if selected frequency plus width is greater than the maximum frequency
+    for freq in [selectedFreq1, selectedFreq2, selectedFreq3, selectedFreq4]:
+        if freq + width > freqs[-1] or freq - width < freqs[0]:
+            power[freqs > freq + width] = -70
+            power[freqs < freq - width] = -70
 
-    '''
-    4/6 Definitely need to define SNR here... That isn't a global in StreamSim. 
-    This could be a user defined param with a reasonable default value if you want to make this more configurable.
-    '''
-    # Generate random noise samples with Gaussian distribution
-    noise_power = signal_power / (10 ** (snr / 10))
-    noise = np.random.normal(0, np.sqrt(noise_power), size=len(freqs))
-
-    # Add noise to the signal
-    signal = signal_power + noise
-
-    # Combine signal and frequency data
-    data = list(zip(freqs, signal))
+    # Add noise to power using the specified SNR
+    noise = np.random.normal(0, 1, len(power))
+    noise_power = np.var(power) / (10**(snr/10))
+    scaled_noise = np.sqrt(noise_power) * noise
+    power = power + scaled_noise
+    data = list(zip(freqs, power))
     s.stdout = '\\n'.join([str(x)+' '+str(y) for x,y in data])
-
+   
     curCmd = None
 
     if queue:
