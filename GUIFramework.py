@@ -215,7 +215,7 @@ class MainWidget(QMainWindow):
         self.ToggleScaninput_label2.setStyleSheet(LabelStyleSheet)
         self.ToggleScaninput_label2.setAlignment(Qt.AlignCenter)
         self.ToggleScaninput_field2 = QLineEdit()
-        self.ToggleScaninput_field2.setPlaceholderText("60M")
+        self.ToggleScaninput_field2.setPlaceholderText("40M")
         self.ToggleScaninput_field2.setStyleSheet(InputFieldStyleSheet)
         self.ToggleScaninput_field2.setAlignment(Qt.AlignCenter)
         self.ToggleScaninput_field2.setFixedWidth(200)
@@ -418,12 +418,13 @@ class MainWidget(QMainWindow):
         # Add the input fields
         self.FreqHopInputs_Layout = QVBoxLayout()
         self.FreqHopInputsUpper_Layout = QHBoxLayout()
+
         self.FreqHopinput_field1_Layout = QVBoxLayout()
-        self.FreqHopinput_label1 = QLabel("Hop Duration:")
+        self.FreqHopinput_label1 = QLabel("Transmission Power:")
         self.FreqHopinput_label1.setStyleSheet(LabelStyleSheet)
         self.FreqHopinput_label1.setAlignment(Qt.AlignCenter)
         self.FreqHopinput_field1 = QLineEdit()
-        self.FreqHopinput_field1.setPlaceholderText("5 Sec")
+        self.FreqHopinput_field1.setPlaceholderText("-30 dBm")
         self.FreqHopinput_field1.setStyleSheet(InputFieldStyleSheet)
         self.FreqHopinput_field1.setAlignment(Qt.AlignCenter)
         self.FreqHopinput_field1.setFixedWidth(200)
@@ -432,22 +433,7 @@ class MainWidget(QMainWindow):
         self.FreqHopinput_field1_Layout.addWidget(self.FreqHopinput_label1)
         self.FreqHopinput_field1_Layout.addWidget(self.FreqHopinput_field1, alignment=Qt.AlignCenter)
 
-        self.FreqHopinput_field2_Layout = QVBoxLayout()
-        self.FreqHopinput_label2 = QLabel("Transmission Power:")
-        self.FreqHopinput_label2.setStyleSheet(LabelStyleSheet)
-        self.FreqHopinput_label2.setAlignment(Qt.AlignCenter)
-        self.FreqHopinput_field2 = QLineEdit()
-        self.FreqHopinput_field2.setPlaceholderText("-30 dBm")
-        self.FreqHopinput_field2.setStyleSheet(InputFieldStyleSheet)
-        self.FreqHopinput_field2.setAlignment(Qt.AlignCenter)
-        self.FreqHopinput_field2.setFixedWidth(200)
-        self.FreqHopinput_field2.setFixedHeight(40)
-        self.FreqHopinput_field2.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
-        self.FreqHopinput_field2_Layout.addWidget(self.FreqHopinput_label2)
-        self.FreqHopinput_field2_Layout.addWidget(self.FreqHopinput_field2, alignment=Qt.AlignCenter)
-
         self.FreqHopInputsUpper_Layout.addLayout(self.FreqHopinput_field1_Layout)
-        self.FreqHopInputsUpper_Layout.addLayout(self.FreqHopinput_field2_Layout)
 
         self.FreqHopCentral_Layout.addLayout(self.FreqHopInputsUpper_Layout)
 
@@ -457,7 +443,7 @@ class MainWidget(QMainWindow):
         self.FreqHopinput_label3.setStyleSheet(LabelStyleSheet)
         self.FreqHopinput_label3.setAlignment(Qt.AlignCenter)
         self.FreqHopinput_field3 = QLineEdit()
-        self.FreqHopinput_field3.setPlaceholderText("20 MHz")
+        self.FreqHopinput_field3.setPlaceholderText("30 MHz")
         self.FreqHopinput_field3.setStyleSheet(InputFieldStyleSheet)
         self.FreqHopinput_field3.setAlignment(Qt.AlignCenter)
         self.FreqHopinput_field3.setFixedWidth(200)
@@ -471,7 +457,7 @@ class MainWidget(QMainWindow):
         self.FreqHopinput_label4.setStyleSheet(LabelStyleSheet)
         self.FreqHopinput_label4.setAlignment(Qt.AlignCenter)
         self.FreqHopinput_field4 = QLineEdit()
-        self.FreqHopinput_field4.setPlaceholderText("80 MHz")
+        self.FreqHopinput_field4.setPlaceholderText("60 MHz")
         self.FreqHopinput_field4.setStyleSheet(InputFieldStyleSheet)
         self.FreqHopinput_field4.setAlignment(Qt.AlignCenter)
         self.FreqHopinput_field4.setFixedWidth(200)
@@ -495,7 +481,7 @@ class MainWidget(QMainWindow):
         self.FreqHopCentral_Layout.addWidget(self.FreqHopScanButton)
 
         # Add the info label
-        self.FreqHop_Info = QLabel("""Generates a frequency hopping transmission simulation with the high power center moving to a new frequency every period of hop duration in seconds. If hop duration or power is not provided, a random value within the proper parameters is chosen.""")
+        self.FreqHop_Info = QLabel("""Generates a frequency hopping transmission simulation with the high power center moving to a new frequency every scan cycle. If no parameters are chosen then default values will be utilized. Power should be enterd in the form -30 for -30dBM and frequencies should be entered in the form of 30M for 30 MHz.""")
         self.FreqHop_Info.setAlignment(Qt.AlignCenter)
         self.FreqHop_Info.setStyleSheet(SubPageInfoStyleSheet)
         self.FreqHop_Info.setWordWrap(True)
@@ -551,10 +537,10 @@ class MainWidget(QMainWindow):
             field.setFixedHeight(40)
             field.setFocusPolicy(Qt.ClickFocus | Qt.NoFocus)
             self.Widebandinput_Upper_Layout.addWidget(field, alignment=Qt.AlignCenter)
-        self.Widebandinput_field1_1.setPlaceholderText("20 MHz")
-        self.Widebandinput_field1_2.setPlaceholderText("40 MHz")
-        self.Widebandinput_field1_3.setPlaceholderText("60 MHz")
-        self.Widebandinput_field1_4.setPlaceholderText("80 MHz")
+        self.Widebandinput_field1_1.setPlaceholderText("31 MHz")
+        self.Widebandinput_field1_2.setPlaceholderText("32 MHz")
+        self.Widebandinput_field1_3.setPlaceholderText("33 MHz")
+        self.Widebandinput_field1_4.setPlaceholderText("34 MHz")
         self.Widebandinput_field1_Layout.addLayout(self.Widebandinput_Upper_Layout)
 
         self.Widebandinput_Lower_Layout = QHBoxLayout()
@@ -578,7 +564,7 @@ class MainWidget(QMainWindow):
         self.Widebandinput_label3.setStyleSheet(LabelStyleSheet)
         self.Widebandinput_label3.setAlignment(Qt.AlignCenter)
         self.Widebandinput_field3 = QLineEdit()
-        self.Widebandinput_field3.setPlaceholderText("10 MHz")
+        self.Widebandinput_field3.setPlaceholderText("30 MHz")
         self.Widebandinput_field3.setStyleSheet(InputFieldStyleSheet)
         self.Widebandinput_field3.setAlignment(Qt.AlignCenter)
         self.Widebandinput_field3.setFixedWidth(200)
@@ -593,7 +579,7 @@ class MainWidget(QMainWindow):
         self.Widebandinput_label4.setStyleSheet(LabelStyleSheet)
         self.Widebandinput_label4.setAlignment(Qt.AlignCenter)
         self.Widebandinput_field4 = QLineEdit()
-        self.Widebandinput_field4.setPlaceholderText("90 MHz")
+        self.Widebandinput_field4.setPlaceholderText("35 MHz")
         self.Widebandinput_field4.setStyleSheet(InputFieldStyleSheet)
         self.Widebandinput_field4.setAlignment(Qt.AlignCenter)
         self.Widebandinput_field4.setFixedWidth(200)
@@ -615,7 +601,7 @@ class MainWidget(QMainWindow):
         self.WidebandCentral_Layout.addWidget(self.WidebandScanButton)
 
         # Add the info label
-        self.Wideband_Info = QLabel("""Generates wideband transmission simulation with 4 channels centered at selected frequencies with selected center power. The default behavior is to select 4 random center frequencies between 300M to 1.7G at randomly selected center powers.""")
+        self.Wideband_Info = QLabel("""Generates wideband transmission simulation with 4 channels centered at selected frequencies with selected center power. The default behavior is to select 4 random center frequencies between 5M to 5G at randomly selected center powers.""")
         self.Wideband_Info.setAlignment(Qt.AlignCenter)
         self.Wideband_Info.setStyleSheet(SubPageInfoStyleSheet)
         self.Wideband_Info.setWordWrap(True)
@@ -779,13 +765,13 @@ class MainWidget(QMainWindow):
         cmdFreq = ToggleScan_starting_freq + ":" + ToggleScan_ending_freq
 
         if ToggleScan_starting_freq == "" and ToggleScan_ending_freq == "":
-            cmdFreq = '30M:60M'
+            cmdFreq = '30M:40M'
 
         elif ToggleScan_starting_freq == "":
             cmdFreq = '30M:' + ToggleScan_ending_freq
 
         elif ToggleScan_ending_freq == "":
-            cmdFreq = ToggleScan_starting_freq + ':60M'
+            cmdFreq = ToggleScan_starting_freq + ':40M'
 
         else: 
             cmdFreq = ToggleScan_starting_freq + ":" + ToggleScan_ending_freq
@@ -796,7 +782,7 @@ class MainWidget(QMainWindow):
         if self.FixFreqinput_field1.text() == "":
             selectedFreq = 33_000_000
         else:
-            selectedFreq = convert_to_int(selectedFreq)
+            selectedFreq = convert_to_int(self.FixFreqinput_field1.text())
         
         
         FixFreq_starting_freq = self.FixFreqinput_field3.text()
@@ -829,32 +815,71 @@ class MainWidget(QMainWindow):
 
     
     def frequencyHoppingScanMethod(self):
+        if self.FreqHopinput_field1.text() == "":
+            peakPower = -30
+        else:
+            peakPower = int(self.FreqHopinput_field1.text())
+
         freqHop_starting_freq = self.FreqHopinput_field3.text()
         freqHop_ending_freq = self.FreqHopinput_field4.text()
-        cmdFreq = freqHop_starting_freq + ":" + freqHop_ending_freq
+        
+        if freqHop_starting_freq == "" and freqHop_ending_freq == "":
+            cmdFreq = '30M:60M'
+
+        elif freqHop_starting_freq == "":
+            cmdFreq = '30M:' + freqHop_ending_freq
+
+        elif freqHop_ending_freq == "":
+            cmdFreq = freqHop_starting_freq + ':60M'
+
+        else: 
+            cmdFreq = freqHop_starting_freq + ":" + freqHop_ending_freq
 
         simConfig = simConfigObj()
         simConfig.snr = 10
-        simConfig.peakPower = 0
+        simConfig.peakPower = peakPower
         simConfig.scanType = 'freqHopping'
 
         self.openPlottingWidget(cmdFreq, True, simConfig)
         
     
     def widebandTransmissionScanMethod(self):
+        simConfig = simConfigObj()
+        if (self.Widebandinput_field1_1.text() == "") or (self.Widebandinput_field1_2.text() == "") or (self.Widebandinput_field1_3.text() == "") or (self.Widebandinput_field1_4.text() == ""):
+            simConfig.selectedFreq1 = 31_000_000
+            simConfig.selectedFreq2 = 32_000_000
+            simConfig.selectedFreq3 = 33_000_000
+            simConfig.selectedFreq4 = 34_000_000
+        else:
+            simConfig.selectedFreq1 = convert_to_int(self.Widebandinput_field1_1.text())
+            simConfig.selectedFreq2 = convert_to_int(self.Widebandinput_field1_2.text())
+            simConfig.selectedFreq3 = convert_to_int(self.Widebandinput_field1_3.text())
+            simConfig.selectedFreq4 = convert_to_int(self.Widebandinput_field1_4.text())
+
+        if self.Widebandinput_field2.text() == "":
+            peakPower = -30
+        else:
+            peakPower = int(self.Widebandinput_field2.text())
+        
         WB_starting_freq = self.Widebandinput_field3.text()
         WB_ending_freq = self.Widebandinput_field4.text()
-        cmdFreq = WB_starting_freq + ":" + WB_ending_freq
+        
+        if WB_starting_freq == "" and WB_ending_freq == "":
+            cmdFreq = '30M:35M'
 
-        simConfig = simConfigObj()
+        elif WB_starting_freq == "":
+            cmdFreq = '30M:' + WB_ending_freq
+
+        elif WB_ending_freq == "":
+            cmdFreq = WB_starting_freq + ':35M'
+
+        else: 
+            cmdFreq = WB_starting_freq + ":" + WB_ending_freq
+
         simConfig.snr = 10
-        simConfig.peakPower = 0
+        simConfig.peakPower = peakPower
         simConfig.scanType = 'widebandFreq'
 
-        simConfig.selectedFreq1 = int(self.Widebandinput_field1_1.text())
-        simConfig.selectedFreq2 = int(self.Widebandinput_field1_2.text())
-        simConfig.selectedFreq3 = int(self.Widebandinput_field1_3.text())
-        simConfig.selectedFreq4 = int(self.Widebandinput_field1_4.text())
 
         self.openPlottingWidget(cmdFreq, True, simConfig)
 
