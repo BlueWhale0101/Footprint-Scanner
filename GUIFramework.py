@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QStackedLayout, QTextEdit, QSizePolicy, QLineEdit, QFormLayout, QDialog, QDialogButtonBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QStackedLayout, QTextEdit, QSizePolicy, QLineEdit, QFormLayout, QDialog, QDialogButtonBox, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 import pickle
@@ -7,12 +7,15 @@ import os.path
 from BinarySpectroViewer import *
 from multiprocessing import set_start_method
 from EARSscan import *
+import EARSscan
 from StreamSim import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib
+matplotlib.use('Qt5Agg')
 
 
 ''' Let's set globals up here for any formatting that will be used across all pages'''
@@ -64,24 +67,16 @@ LabelStyleSheet = '''
 SubPageHeaderStyleSheet = '''font-size: 15pt; font-weight: bold; color: white;'''
 SubPageInfoStyleSheet = '''font-size: 10pt; font-weight: bold; color: white;'''
 
-
-class confirmDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-
-        self.setWindowTitle("Confirm")
-
-        QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-
-        self.buttonBox = QDialogButtonBox(QBtn)
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.reject)
-
-        self.layout = QVBoxLayout()
-        self.prompt = QLabel(" ")
-        self.layout.addWidget(self.prompt)
-        self.layout.addWidget(self.buttonBox)
-        self.setLayout(self.layout)
+def convert_to_int(value):
+    suffixes = {'K': 10**3, 'M': 10**6, 'G': 10**9}
+    try:
+        suffix = value[-1]
+        number = float(value[:-1])
+        if suffix in suffixes:
+            return int(number * suffixes[suffix])
+    except ValueError:
+        pass
+    raise ValueError("Invalid input")
 
 class MainWidget(QMainWindow):
     def __init__(self, stackLayout):
@@ -206,7 +201,7 @@ class MainWidget(QMainWindow):
         self.ToggleScaninput_label1.setStyleSheet(LabelStyleSheet)
         self.ToggleScaninput_label1.setAlignment(Qt.AlignCenter)
         self.ToggleScaninput_field1 = QLineEdit()
-        self.ToggleScaninput_field1.setPlaceholderText("20M")
+        self.ToggleScaninput_field1.setPlaceholderText("30M")
         self.ToggleScaninput_field1.setStyleSheet(InputFieldStyleSheet)
         self.ToggleScaninput_field1.setAlignment(Qt.AlignCenter)
         self.ToggleScaninput_field1.setFixedWidth(200)
@@ -220,7 +215,7 @@ class MainWidget(QMainWindow):
         self.ToggleScaninput_label2.setStyleSheet(LabelStyleSheet)
         self.ToggleScaninput_label2.setAlignment(Qt.AlignCenter)
         self.ToggleScaninput_field2 = QLineEdit()
-        self.ToggleScaninput_field2.setPlaceholderText("80M")
+        self.ToggleScaninput_field2.setPlaceholderText("60M")
         self.ToggleScaninput_field2.setStyleSheet(InputFieldStyleSheet)
         self.ToggleScaninput_field2.setAlignment(Qt.AlignCenter)
         self.ToggleScaninput_field2.setFixedWidth(200)
@@ -313,7 +308,7 @@ class MainWidget(QMainWindow):
         self.FixFreqinput_label1.setStyleSheet(LabelStyleSheet)
         self.FixFreqinput_label1.setAlignment(Qt.AlignCenter)
         self.FixFreqinput_field1 = QLineEdit()
-        self.FixFreqinput_field1.setPlaceholderText("60 MHz")
+        self.FixFreqinput_field1.setPlaceholderText("33 MHz")
         self.FixFreqinput_field1.setStyleSheet(InputFieldStyleSheet)
         self.FixFreqinput_field1.setAlignment(Qt.AlignCenter)
         self.FixFreqinput_field1.setFixedWidth(200)
@@ -347,7 +342,7 @@ class MainWidget(QMainWindow):
         self.FixFreqinput_label3.setStyleSheet(LabelStyleSheet)
         self.FixFreqinput_label3.setAlignment(Qt.AlignCenter)
         self.FixFreqinput_field3 = QLineEdit()
-        self.FixFreqinput_field3.setPlaceholderText("20 MHz")
+        self.FixFreqinput_field3.setPlaceholderText("30 MHz")
         self.FixFreqinput_field3.setStyleSheet(InputFieldStyleSheet)
         self.FixFreqinput_field3.setAlignment(Qt.AlignCenter)
         self.FixFreqinput_field3.setFixedWidth(200)
@@ -361,7 +356,7 @@ class MainWidget(QMainWindow):
         self.FixFreqinput_label4.setStyleSheet(LabelStyleSheet)
         self.FixFreqinput_label4.setAlignment(Qt.AlignCenter)
         self.FixFreqinput_field4 = QLineEdit()
-        self.FixFreqinput_field4.setPlaceholderText("80 MHz")
+        self.FixFreqinput_field4.setPlaceholderText("35 MHz")
         self.FixFreqinput_field4.setStyleSheet(InputFieldStyleSheet)
         self.FixFreqinput_field4.setAlignment(Qt.AlignCenter)
         self.FixFreqinput_field4.setFixedWidth(200)
@@ -384,7 +379,7 @@ class MainWidget(QMainWindow):
         self.FixFreqCentral_Layout.addWidget(self.FixFreqScanButton)
 
         # Add the info label
-        self.FixFreq_Info = QLabel("""This scan simulation generates a fixed frequency transmission with power centered on the selected frequency. The default behavior is to select a random center frequency and random power if values are left blank. Inputted frequencies must be between 50 MHz and 6 GHz. Inputted powers must be between -30 dBm and 30 dBm. Enter frequency in the form of 60M for 60 MHz. Enter power in the form of -30 for -30 dBm.""")
+        self.FixFreq_Info = QLabel("""This scan simulation generates a fixed frequency transmission with power centered on the selected frequency. The default behavior is to select a random center frequency and random power if values are left blank. Inputted frequencies must be between 5 MHz and 5 GHz. Inputted powers must be between -60 dBm and 30 dBm. Enter frequency in the form of 60M for 60 MHz. Enter power in the form of -30 for -30 dBm.""")
         self.FixFreq_Info.setAlignment(Qt.AlignCenter)
         self.FixFreq_Info.setStyleSheet(SubPageInfoStyleSheet)
         self.FixFreq_Info.setWordWrap(True)
@@ -643,60 +638,140 @@ class MainWidget(QMainWindow):
         self.WidebandBackButton.clicked.connect(self.openSimulatedScanWidget)
         self.WidebandScanButton.clicked.connect(self.widebandTransmissionScanMethod)
 
-    def openPlottingWidget(self):
-        '''TODO'''
-        ''''This should work something like, every method function has a first line that calls this widget to open in place of the others, 
-        then the data is generated and the plot is made on this widget, then when the user leaves the widget the plot is claered so that 
-        there isnt any old data when they generate a new plot'''
-
+    def openPlottingWidget(self, cmdFreqs, simFlag, simConfig):
+        # Set up the plotting widget
         self.plottingWidget = QWidget()
         self.plottingWidget.setStyleSheet(BackgroundStyle)
         self.plottingLayout = QVBoxLayout()
 
-        #I need to figure out how to get the data from the scan to be plotted here on the widget rather then in a new matplotlib window
-        fig = plt.figure()
-        canvas = FigureCanvas(fig)
-        self.plottingLayout.addWidget(canvas)
+        print('Initializing scan...')
+        matplotlib.pyplot.style.use('dark_background')
 
+        # Start the first scan so there is data in the pipe
+        self.initScanMethod()
 
-        self.plottingBackButton = QPushButton('Back')
-        self.plottingBackButton.setStyleSheet(BackButtonStyleSheet)
-        self.plottingLayout.addWidget(self.plottingBackButton)
+        # Show the scan Data
+        self.powerGraph = MplCanvas(self)
+        self.axesRef = self.powerGraph.figure.axes[0]
+        self.powerGraph.figure.tight_layout()
+        self.updateCount = 0
+        
+        # call the update event This drives both the scanning calls and the graph updating
+        # Set up the update function
+        self.updateTimer = QTimer()
+        self.updateTimer.timeout.connect(self.updateMethod)
+        #Update interval is set in milliseconds
+        self.updateTimer.setInterval(1000)
+        self.updateTimer.start()
+        #Start software bus queue
+        self.SWBQueue = Queue(25)
+        # Add the graph widget which shows the moving average of the power, in decibels, of the band.
+        self.plottingLayout.addWidget(self.powerGraph)
+        #Add a loading message to the power graph
+        self.axesRef.text(0.05, .95, 'Loading data...')
+        #Start the hardware scanning process
+        self.hwScanProcess = Process(target=streamScan, args = (cmdFreqs, self.SWBQueue, simFlag, simConfig))
+        self.hwScanProcess.start()
+
+        # Close Button setup
+        self.Close_Button = QPushButton('End Scan')
+        self.Close_Button.setStyleSheet(BackButtonStyleSheet)
+        self.Close_Button.clicked.connect(self.close)
+        self.Close_Button.clicked.connect(self.openMainWidget)
+        self.plottingLayout.addWidget(self.Close_Button)
+        #Final setup for the plotting widget
         self.plottingWidget.setLayout(self.plottingLayout)
         self.stackLayout.addWidget(self.plottingWidget)
         self.stackLayout.setCurrentWidget(self.plottingWidget)
-        
-        # set connections for buttons
-        self.plottingBackButton.clicked.connect(self.openMainWidget)
-    
+
+        simConfigObj.clear(self)
+
+    # All the the necessary items from old EARSscan will be here
+
+    class MplCanvas(FigureCanvasQTAgg):
+        #This is a class for setting up the embedded matplotlib figure
+        def __init__(self, parent=None, width=5, height=4, dpi=100):
+            fig = Figure(figsize=(width, height), dpi=dpi)
+            self.axes = fig.add_subplot(111)
+            super(MplCanvas, self).__init__(fig)
+
+    def initScanMethod(self):
+        # we have not started the first scan. Build the Command
+        #Return True if the method completed without issues. Return False if there were errors.
+        # configDict has keys title, minFreq, maxFreq, binSize, interval, exitTimer
+        pass
+
+    def updateMethod(self):
+
+        #check for an update in the queue
+        if not self.SWBQueue.empty():
+            self.updateCount += 1
+            #Got data in the queue
+            df, maxDF, baseline = self.SWBQueue.get()
+            #Clear axes
+            self.axesRef.cla()
+            #Add time and number of updates annotation
+            curTime = datetime.datetime.now().strftime("%Y:%m:%d:%H:%M:%S")
+            curTimeUpdateText = 'Last update: ' + curTime
+            curUpdateText = 'Number of scans: ' + str(self.updateCount)
+            print(curUpdateText)
+            print(curTimeUpdateText)
+            self.axesRef.text(0.05, .95, curTimeUpdateText)
+            self.axesRef.text(0.05, .90, curUpdateText)
+            #Plot our data
+            maxDF.plot(ax=self.axesRef, x='freqCompare', y='power', style='y', linewidth = .5, label='max hold', grid='On', title = 'ScanView')
+            df.plot(ax=self.axesRef, x='frequency', y='power', grid='On', title = 'ScanView', label='current', alpha = .7, linewidth = .5)
+            self.axesRef.fill_between(df['frequency'], df['power'], df['power'].min(), alpha = .5)
+            baseline.plot(ax=self.axesRef, x='frequency', y='power', style='r-.', linewidth=.5, alpha = .7, label = 'baseline')
+            
+            #Draw and allow matplotlib to do plot update
+            self.powerGraph.draw()
+            matplotlib.pyplot.pause(.05)
+
+    def updatePlot(self):
+        #Read in all the new data
+        pass
+
+    def closeEvent(self, event):
+        # Make sure we are gracefully ending the scan and not just leaving the process running in the background.
+        # This would probably cause problems if the user then immediately tried to start another scan.
+        print('gracefully closing...')
+        while not self.SWBQueue.empty():
+            print('Flushing queue...')
+            #Ensure the queue is empty before sending the command. 
+            #This ensures that this is the next item in the queue when the hw process looks.
+            flushVar = self.SWBQueue.get()
+        self.SWBQueue.put('QUIT')
+        print('Closed the SWB Queue and hardware process.')
+        #self.hwScanProcess.join()
+        self.SWBQueue.get(block=True, timeout=300)
+        self.SWBQueue.close()
+        self.hwScanProcess.terminate()
+        print('Closed scan and queue')
+        self.updateTimer.stop()
+        event.accept()
+
     '''TODO: Need to figure out how errors and updates will be handled with new button scheme
     whether with popups or integrating alert section into pages'''
-
+    
     def openMainWidget(self):
         self.stackLayout.setCurrentWidget(self)
 
-
     def VHFScanMethod(self):
-        scanWindowProcess = Process(target=startScanWindow, args=('30M:50M', ))
-        scanWindowProcess.start()
+        cmdFreq = '30M:50M'
+        self.openPlottingWidget(cmdFreq, False, None)
 
     def UHFScanMethod(self):
-        '''
-        Sigh..... this starts a brand new process for the scan window, then this window's
-        process blocks until we close the new window. HOWEVER - this doesn't stop the user 
-        from opening multiple windows. That's also fine, but it will make both windows 
-        appear to perform quite poorly as the two compete for use of the SDR.
-        '''
-        scanWindowProcess = Process(target=startScanWindow, args=('225M:400M', ))
-        scanWindowProcess.start()
+        cmdFreq = '225M:400M'
+        self.openPlottingWidget(cmdFreq, False, None)
 
     def FullScanMethod(self):
-        scanWindowProcess = Process(target=startScanWindow, args=('30M:1.7G', ))
-        scanWindowProcess.start()
+        cmdFreq = '30M:1.7G'
+        self.openPlottingWidget(cmdFreq, False, None)
 
     def GPSScanMethod(self):
-        scanWindowProcess = Process(target=startScanWindow, args=('1227590000:1227610000', ))
-        scanWindowProcess.start()
+        cmdFreq = '1227590000:1227610000'
+        self.openPlottingWidget(cmdFreq, False, None)
 
     def toggleScanMethod(self):
         ToggleScan_starting_freq = self.ToggleScaninput_field1.text()
@@ -704,39 +779,54 @@ class MainWidget(QMainWindow):
         cmdFreq = ToggleScan_starting_freq + ":" + ToggleScan_ending_freq
 
         if ToggleScan_starting_freq == "" and ToggleScan_ending_freq == "":
-            cmdFreq = '30M:88M'
+            cmdFreq = '30M:60M'
 
         elif ToggleScan_starting_freq == "":
             cmdFreq = '30M:' + ToggleScan_ending_freq
 
         elif ToggleScan_ending_freq == "":
-            cmdFreq = ToggleScan_starting_freq + ':88M'
+            cmdFreq = ToggleScan_starting_freq + ':60M'
 
         else: 
             cmdFreq = ToggleScan_starting_freq + ":" + ToggleScan_ending_freq
 
-        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, False))
-        scanWindowProcess.start()
+        self.openPlottingWidget(cmdFreq, False, None)
     
     def fixedFrequencyScanMethod(self):
-        '''TODO'''
-        # I'm pretty sure we want to change this to accept center frequency and power as input not freq range
-        #self.openPlottingWidget()
+        if self.FixFreqinput_field1.text() == "":
+            selectedFreq = 33_000_000
+        else:
+            selectedFreq = convert_to_int(selectedFreq)
+        
         
         FixFreq_starting_freq = self.FixFreqinput_field3.text()
         FixFreq_ending_freq = self.FixFreqinput_field4.text()
-        cmdFreq = FixFreq_starting_freq + ":" + FixFreq_ending_freq
+
+        if FixFreq_starting_freq == "" and FixFreq_ending_freq == "":
+            cmdFreq = '30M:35M'
+
+        elif FixFreq_starting_freq == "":
+            cmdFreq = '30M:' + FixFreq_ending_freq
+
+        elif FixFreq_ending_freq == "":
+            cmdFreq = FixFreq_starting_freq + ':35M'
+
+        else: 
+            cmdFreq = FixFreq_starting_freq + ":" + FixFreq_ending_freq
+
+        if self.FixFreqinput_field2.text() == "":
+            peakPower = -30
+        else:
+            peakPower = int(self.FixFreqinput_field2.text())
 
         simConfig = simConfigObj()
         simConfig.snr = 10
-        simConfig.peakPower = 0
+        simConfig.peakPower = peakPower
         simConfig.scanType = 'fixedFreq'
-        simConfig.selectedFreq = 32_000_000 #TODO Make this a user provided variable
+        simConfig.selectedFreq = selectedFreq
 
-        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, True, simConfig))
-        scanWindowProcess.start()
-        
-        
+        self.openPlottingWidget(cmdFreq, True, simConfig)
+
     
     def frequencyHoppingScanMethod(self):
         freqHop_starting_freq = self.FreqHopinput_field3.text()
@@ -748,8 +838,7 @@ class MainWidget(QMainWindow):
         simConfig.peakPower = 0
         simConfig.scanType = 'freqHopping'
 
-        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, True, simConfig))
-        scanWindowProcess.start()
+        self.openPlottingWidget(cmdFreq, True, simConfig)
         
     
     def widebandTransmissionScanMethod(self):
@@ -767,8 +856,7 @@ class MainWidget(QMainWindow):
         simConfig.selectedFreq3 = int(self.Widebandinput_field1_3.text())
         simConfig.selectedFreq4 = int(self.Widebandinput_field1_4.text())
 
-        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, True, simConfig))
-        scanWindowProcess.start()
+        self.openPlottingWidget(cmdFreq, True, simConfig)
 
     def calibrateMethod(self):
         '''TODO: This should be revisited in the case we want to handle the calibration method 
@@ -895,8 +983,6 @@ if __name__ == '__main__':
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
-
-
 
 
 
