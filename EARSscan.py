@@ -33,11 +33,11 @@ class MplCanvas(FigureCanvasQTAgg):
 
 class EARSscanWindow(QMainWindow):
 
-    def __init__(self, cmdFreqs='30M:35M'):
+    def __init__(self, cmdFreqs='30M:35M', simFlag=False, simConfig=None):
         super().__init__()
-        self.initUI(cmdFreqs)
+        self.initUI(cmdFreqs, simFlag, simConfig)
 
-    def initUI(self, cmdFreqs):
+    def initUI(self, cmdFreqs, simFlag, simConfig):
         print('Initializing scan...')
         # Add status bar
         self.statusBar()
@@ -69,7 +69,7 @@ class EARSscanWindow(QMainWindow):
         #Add a loading message to the power graph
         self.axesRef.text(0.05, .95, 'Loading data...')
         #Start the hardware scanning process
-        self.hwScanProcess = Process(target=streamScan, args = (cmdFreqs, self.SWBQueue))
+        self.hwScanProcess = Process(target=streamScan, args = (cmdFreqs, self.SWBQueue, simFlag, simConfig))
         self.hwScanProcess.start()
 
         # Close Button setup
@@ -156,10 +156,10 @@ class EARSscanWindow(QMainWindow):
     pyqtRemoveInputHook()
     set_trace()
 '''
-def startScanWindow(cmdFreq = '30M:35M'):
+def startScanWindow(cmdFreq = '30M:35M', simFlag = False, simConfig = None):
     import sys
     app = QApplication(sys.argv)
-    mainWindow = EARSscanWindow(cmdFreq)
+    mainWindow = EARSscanWindow(cmdFreq, simFlag, simConfig)
     #Start the application
     sys.exit(app.exec_())
 

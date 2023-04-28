@@ -81,7 +81,7 @@ def convertFreqtoInt(freqStr):
         highFreq = highFreq.replace(p, i)
     return (int(lowFreq), int(highFreq))
 
-def streamScan(cmdFreq = '88M:100M', SWBqueue=None):
+def streamScan(cmdFreq = '88M:100M', SWBqueue=None, simFlag = False, simConfig = None):
     '''
     given a commanded set of frequencies and a queue to control the process, 
     perform the following steps in a loop.
@@ -92,9 +92,12 @@ def streamScan(cmdFreq = '88M:100M', SWBqueue=None):
     4. Check for a command in the queue. Execute any commands that are found. 
     5. Once the queue is empty, Send the dataframes back to the viewer.
     '''
-    simFlag = False #Sim isn't implemented yet. This is hardcoded False for now.
     quitFlag = False
     currentCommand = None
+
+    if simFlag:
+        #Make sim functions available only if we are going to use them
+        import StreamSim
 
     print('Received command ', cmdFreq)
 
@@ -119,17 +122,28 @@ def streamScan(cmdFreq = '88M:100M', SWBqueue=None):
     maxDF = pd.DataFrame(columns=['frequency', 'power'])
     #Start execution loop
     while not quitFlag:
-        s = sb.run(args, stdout=sb.PIPE, stderr=sb.PIPE, shell=False)
-        while not s.returncode == 0:
-            if s.returncode == 1:
-                #We errored out. Most likely, RTL SDR is not plugged in
-                if 'No RTL-SDR' in str(s.stderr):
-                    print('You forgot to plug in the RTL-SDR!')
-                print('Scan failed with error "{}"'.format(s.stderr))
-                return
-            else:
-                #We need to just keep waiting to finish. This scan can take awhile.
-                sleep(.5)
+        if not simFlag:
+            s = sb.run(args, stdout=sb.PIPE, stderr=sb.PIPE, shell=False)
+            while not s.returncode == 0:
+                if s.returncode == 1:
+                    #We errored out. Most likely, RTL SDR is not plugged in
+                    if 'No RTL-SDR' in str(s.stderr):
+                        print('You forgot to plug in the RTL-SDR!')
+                    print('Scan failed with error "{}"'.format(s.stderr))
+                    return
+                else:
+                    #We need to just keep waiting to finish. This scan can take awhile.
+                    sleep(.5)
+        else:
+            if simConfig.scanType == 'fixedFreq':
+                s = StreamSim.genFixedFreq(scannedFreqRange=cmdFreq, selectedFreq = simConfig.selectedFreq,\
+                                            peakPower = simConfig.peakPower, snr=simConfig.snr)
+            elif simConfig.scanType == 'widebandFreq':
+                s = StreamSim.genWidebandTransmission(scannedFreqRange=cmdFreq, selectedFreq1 = simConfig.selectedFreq1, \
+                                                      selectedFreq2 = simConfig.selectedFreq2, selectedFreq3 = simConfig.selectedFreq3, selectedFreq4 = simConfig.selectedFreq4, \
+                                                      peakPower = simConfig.peakPower, snr=simConfig.snr)
+            elif simConfig.scanType == 'freqHopping':
+                s = StreamSim.genFreqHopping(scannedFreqRange=cmdFreq, peakPower = simConfig.peakPower, snr=simConfig.snr)
         data = processRFScan(s.stdout) #Process the bytes like object into the list of tuples we use for processing
         df = pd.DataFrame(data, columns=['frequency', 'power']) #revisit this later. Profiling showed this wasn't a big eater, but the dataframe class is way beefier than I need for just a plot
         threading.Thread(target=passToDbLogger, args=(data, simFlag)).start() #Go ahead and leave this in a different thread. This present thread should focus on processing the RF data        

@@ -715,7 +715,7 @@ class MainWidget(QMainWindow):
         else: 
             cmdFreq = ToggleScan_starting_freq + ":" + ToggleScan_ending_freq
 
-        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, True))
+        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, False))
         scanWindowProcess.start()
     
     def fixedFrequencyScanMethod(self):
@@ -723,34 +723,51 @@ class MainWidget(QMainWindow):
         # I'm pretty sure we want to change this to accept center frequency and power as input not freq range
         #self.openPlottingWidget()
         
-        FixFreq_starting_freq = self.FixFreqinput_field1.text()
-        FixFreq_ending_freq = self.FixFreqinput_field2.text()
-        if FixFreq_starting_freq == "" and FixFreq_ending_freq == "":
-            cmdFreq = '30M:35M'
+        FixFreq_starting_freq = self.FixFreqinput_field3.text()
+        FixFreq_ending_freq = self.FixFreqinput_field4.text()
+        cmdFreq = FixFreq_starting_freq + ":" + FixFreq_ending_freq
 
-        elif FixFreq_starting_freq == "":
-            cmdFreq = '30M:' + FixFreq_ending_freq
+        simConfig = simConfigObj()
+        simConfig.snr = 10
+        simConfig.peakPower = 0
+        simConfig.scanType = 'fixedFreq'
+        simConfig.selectedFreq = 32_000_000 #TODO Make this a user provided variable
 
-        elif FixFreq_ending_freq == "":
-            cmdFreq = FixFreq_starting_freq + ':35M'
-
-        else: 
-            cmdFreq = FixFreq_starting_freq + ":" + FixFreq_ending_freq
-
-        scanWindowProcess = Process(target=streamScanTest, args= (cmdFreq, True, 50_000_000, -20))
+        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, True, simConfig))
         scanWindowProcess.start()
         
         
     
     def frequencyHoppingScanMethod(self):
-        '''TODO'''
-        scanWindowProcess = Process(target=startScanWindow, args=('30M:1G', True))
+        freqHop_starting_freq = self.FreqHopinput_field3.text()
+        freqHop_ending_freq = self.FreqHopinput_field4.text()
+        cmdFreq = freqHop_starting_freq + ":" + freqHop_ending_freq
+
+        simConfig = simConfigObj()
+        simConfig.snr = 10
+        simConfig.peakPower = 0
+        simConfig.scanType = 'freqHopping'
+
+        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, True, simConfig))
         scanWindowProcess.start()
         
     
     def widebandTransmissionScanMethod(self):
-        '''TODO'''
-        scanWindowProcess = Process(target=startScanWindow, args=('300M:1G', ))
+        WB_starting_freq = self.Widebandinput_field3.text()
+        WB_ending_freq = self.Widebandinput_field4.text()
+        cmdFreq = WB_starting_freq + ":" + WB_ending_freq
+
+        simConfig = simConfigObj()
+        simConfig.snr = 10
+        simConfig.peakPower = 0
+        simConfig.scanType = 'widebandFreq'
+
+        simConfig.selectedFreq1 = int(self.Widebandinput_field1_1.text())
+        simConfig.selectedFreq2 = int(self.Widebandinput_field1_2.text())
+        simConfig.selectedFreq3 = int(self.Widebandinput_field1_3.text())
+        simConfig.selectedFreq4 = int(self.Widebandinput_field1_4.text())
+
+        scanWindowProcess = Process(target=startScanWindow, args= (cmdFreq, True, simConfig))
         scanWindowProcess.start()
 
     def calibrateMethod(self):
@@ -799,6 +816,51 @@ class MainWidget(QMainWindow):
             self.msgBox.setStandardButtons(QMessageBox.Ok)
             self.statusBar().showMessage('Done Calibrating')
             self.msgBox.exec()
+
+class simConfigObj():
+    '''
+    The simconfig object will always have all the attributes for all the scan types, which should all default
+    to None. We will only populate and use the appropriate attributes.
+
+    Ensure this is cleared after each scan completes so that we aren't douple populating this object.
+
+    scanType can be either fixedFreq, widebandFreq or freqHopping
+    '''
+    def __init__(self):
+        #Common attributes
+        self.scanType = None
+        self.snr = None 
+        self.peakPower = None
+
+        #List of fixed freq scan attributes
+        self.selectedFreq = None
+        
+        #List of frequency hopping scan attributes
+        self.hopDuration = None
+
+        #List of wideband scan attributes
+        self.selectedFreq1 = None
+        self.selectedFreq2 = None
+        self.selectedFreq3 = None
+        self.selectedFreq4 = None
+
+    def clear(self):
+        #Common attributes
+        self.scanType = None
+        self.snr = None 
+        self.peakPower = None
+
+        #List of fixed freq scan attributes
+        self.selectedFreq = None
+        
+        #List of frequency hopping scan attributes
+        self.hopDuration = None
+
+        #List of wideband scan attributes
+        self.selectedFreq1 = None
+        self.selectedFreq2 = None
+        self.selectedFreq3 = None
+        self.selectedFreq4 = None
 
 
 class MainWindow(QWidget):
